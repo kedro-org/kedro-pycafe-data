@@ -4,98 +4,99 @@
 
 ## Overview
 
-This is your new Kedro project, which was generated using `kedro 1.0.0`.
+A Kedro pipeline that extracts and processes **Kedro framework usage analytics** — pulling PyPI download statistics and Heap telemetry data from Snowflake, then outputting CSV files for dashboards and reporting.
 
-Take a look at the [Kedro documentation](https://docs.kedro.org) to get started.
+The project tracks:
+- PyPI download trends for the Kedro package (global and by country)
+- New Kedro user adoption (monthly)
+- Monthly active users segmented by Kedro version
+- Plugin adoption rates (e.g. `kedro-mlflow`, `kedro-docker`, `kedro-airflow`, etc.)
+- Core command usage patterns (`kedro run`, `kedro viz`, `kedro new`, etc.)
 
-## Rules and guidelines
+## Pipelines
 
-In order to get the best out of the template:
+### `data_transfer`
 
-* Don't remove any lines from the `.gitignore` file we provide
-* Make sure your results can be reproduced by following a data engineering convention
-* Don't commit data to your repository
-* Don't commit any credentials or your local configuration to your repository. Keep all your credentials and local configuration in `conf/local/`
+Extracts PyPI download data from Snowflake views and saves them locally as CSV:
 
-## How to install dependencies
+| Node | Snowflake source | Output |
+|---|---|---|
+| `fetch_and_save_snowflake_data` | `KEDRO_BI_DB.PYPI.V_PYPI_KEDRO_DOWNLOADS` | `data/02_intermediate/pypi_kedro_downloads.csv` |
+| `fetch_and_save_downloads_by_country` | `KEDRO_BI_DB.PYPI.V_DOWNLOADS_BY_COUNTRY` | `data/02_intermediate/downloads_by_country.csv` |
 
-Declare any dependencies in `requirements.txt` for `pip` installation.
+### `telemetry_data`
 
-To install them, run:
+Processes Heap telemetry events from `HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP` in Snowflake via a single `build_telemetry_data` node that produces four outputs:
 
-```
+| Output | Description |
+|---|---|
+| `new_kedro_users_monthly.csv` | First-time Kedro users per month (filtered to users active >8 days) |
+| `mau_kedro.csv` | Monthly active users segmented by Kedro version |
+| `kedro_plugins_mau.csv` | Monthly unique users per plugin (11 plugins tracked) |
+| `kedro_commands_mau.csv` | Monthly unique users per core command (7 commands tracked) |
+
+## Prerequisites
+
+- Python 3.9+
+- Access to the Snowflake data warehouse with appropriate credentials
+- Environment variables for Snowflake authentication (account, user, password)
+
+## Setup
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-## How to run your Kedro pipeline
+Configure Snowflake credentials in `conf/local/credentials.yml` (not committed to version control).
 
-You can run your Kedro project with:
+## Usage
 
-```
+Run all pipelines:
+
+```bash
 kedro run
 ```
 
-## How to test your Kedro project
+Run a specific pipeline:
 
-Have a look at the file `tests/test_run.py` for instructions on how to write your tests. You can run your tests as follows:
-
-```
-pytest
-```
-
-You can configure the coverage threshold in your project's `pyproject.toml` file under the `[tool.coverage.report]` section.
-
-
-## Project dependencies
-
-To see and update the dependency requirements for your project use `requirements.txt`. You can install the project requirements with `pip install -r requirements.txt`.
-
-[Further information about project dependencies](https://docs.kedro.org/en/stable/kedro_project_setup/dependencies.html#project-specific-dependencies)
-
-## How to work with Kedro and notebooks
-
-> Note: Using `kedro jupyter` or `kedro ipython` to run your notebook provides these variables in scope: `context`, 'session', `catalog`, and `pipelines`.
->
-> Jupyter, JupyterLab, and IPython are already included in the project requirements by default, so once you have run `pip install -r requirements.txt` you will not need to take any extra steps before you use them.
-
-### Jupyter
-To use Jupyter notebooks in your Kedro project, you need to install Jupyter:
-
-```
-pip install jupyter
+```bash
+kedro run --pipeline data_transfer
+kedro run --pipeline telemetry_data
 ```
 
-After installing Jupyter, you can start a local notebook server:
+## Automated daily export (GitHub Actions)
+
+A [scheduled workflow](.github/workflows/snowflake_queries.yml) runs every day at **07:15 UTC** to keep the CSV files up to date automatically.
+
+**What it does:**
+
+1. Checks out the repo on an `ubuntu-latest` runner.
+2. Installs Python 3.11 and project dependencies (via `uv`).
+3. Runs `kedro run --pipeline data_transfer` to refresh PyPI download CSVs.
+4. Runs `kedro run --pipeline telemetry_data` to refresh telemetry CSVs.
+5. Commits and pushes any updated CSVs back to `main` (commit message: `Update pipeline outputs [skip ci]`).
+
+**Required GitHub secrets:**
+
+| Secret | Description |
+|---|---|
+| `SNOWFLAKE_ACCOUNT` | Snowflake account identifier |
+| `SNOWFLAKE_USER` | Snowflake username |
+| `SNOWFLAKE_PASSWORD` | Snowflake password |
+| `SNOWFLAKE_ROLE` | Snowflake role |
+
+The workflow can also be triggered manually via `workflow_dispatch`.
+
+## Project layout
 
 ```
-kedro jupyter notebook
+.github/workflows/      # GitHub Actions (daily Snowflake export)
+conf/base/              # Catalog, parameters, and credential templates
+data/02_intermediate/   # Output CSV files
+src/kedro_pycafe_data/
+  pipelines/
+    data_transfer/      # Snowflake → CSV for PyPI download stats
+    telemetry_data/     # Snowflake Heap telemetry → usage analytics CSVs
 ```
-
-### JupyterLab
-To use JupyterLab, you need to install it:
-
-```
-pip install jupyterlab
-```
-
-You can also start JupyterLab:
-
-```
-kedro jupyter lab
-```
-
-### IPython
-And if you want to run an IPython session:
-
-```
-kedro ipython
-```
-
-### How to ignore notebook output cells in `git`
-To automatically strip out all output cell contents before committing to `git`, you can use tools like [`nbstripout`](https://github.com/kynan/nbstripout). For example, you can add a hook in `.git/config` with `nbstripout --install`. This will run `nbstripout` before anything is committed to `git`.
-
-> *Note:* Your output cells will be retained locally.
-
-## Package your Kedro project
-
-[Further information about building project documentation and packaging your project](https://docs.kedro.org/en/stable/tutorial/package_a_project.html)
