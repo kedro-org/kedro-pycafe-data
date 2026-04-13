@@ -76,9 +76,9 @@ YEAR_MONTH,FIRST_TWO_WORDS,UNIQUE_USERS
 2025-08,kedro jupyter,95
 2025-08,kedro ipython,85
 2025-08,kedro package,25
-2025-09,kedro run,882
-2025-09,kedro viz,307
-2025-09,kedro new,299
+2025-09,kedro run,883
+2025-09,kedro viz,308
+2025-09,kedro new,300
 2025-09,kedro pipeline,273
 2025-09,kedro jupyter,110
 2025-09,kedro ipython,88
@@ -125,10 +125,10 @@ YEAR_MONTH,FIRST_TWO_WORDS,UNIQUE_USERS
 2026-03,kedro jupyter,69
 2026-03,kedro ipython,63
 2026-03,kedro package,22
-2026-04,kedro run,392
-2026-04,kedro viz,93
-2026-04,kedro new,62
-2026-04,kedro pipeline,62
+2026-04,kedro run,399
+2026-04,kedro viz,94
+2026-04,kedro pipeline,68
+2026-04,kedro new,65
 2026-04,kedro jupyter,35
 2026-04,kedro ipython,17
 2026-04,kedro package,5
