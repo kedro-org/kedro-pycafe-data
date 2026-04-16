@@ -1,46 +1,61 @@
-pypi_kedro_downloads:
-  type: kedro_datasets.snowflake.SnowparkTableDataset
-  table_name: "V_PYPI_KEDRO_DOWNLOADS"
-  database: "KEDRO_BI_DB"  # Snowflake database
-  schema: "PYPI"  # Schema inside the database
-  credentials: snowflake_credentials
+heap_project_statistics:
+  type: kedro_datasets.ibis.TableDataset
+  table_name: KEDRO_PROJECT_STATISTICS
+  database: HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
-# Save results locally as CSV
-pypi_kedro_downloads_table:
-  type: pandas.CSVDataset
-  filepath: data/02_intermediate/pypi_kedro_downloads.csv
-  save_args:
-    index: False
+heap_any_command_run:
+  type: kedro_datasets.ibis.TableDataset
+  table_name: ANY_COMMAND_RUN
+  database: HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
 new_kedro_users_monthly:
-  type: pandas.CSVDataset
+  type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/new_kedro_users_monthly.csv
-  save_args:
-    index: False
+  file_format: csv
 
 mau_kedro:
-  type: pandas.CSVDataset
+  type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/mau_kedro.csv
-  save_args:
-    index: False
+  file_format: csv
 
 kedro_plugins_mau:
-  type: pandas.CSVDataset
+  type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/kedro_plugins_mau.csv
+  file_format: csv
 
 kedro_commands_mau:
-  type: pandas.CSVDataset
+  type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/kedro_commands_mau.csv
+  file_format: csv
+
+pypi_kedro_downloads:
+  type: kedro_datasets.ibis.TableDataset
+  table_name: V_PYPI_KEDRO_DOWNLOADS
+  database: KEDRO_BI_DB.PYPI
+  connection:
+    backend: snowflake
+  credentials: snowflake_credentials
+
+pypi_kedro_downloads_table:
+  type: kedro_datasets.ibis.FileDataset
+  filepath: data/02_intermediate/pypi_kedro_downloads.csv
+  file_format: csv
 
 downloads_by_country:
-  type: kedro_datasets.snowflake.SnowparkTableDataset
-  table_name: "V_DOWNLOADS_BY_COUNTRY"
-  database: "KEDRO_BI_DB"
-  schema: "PYPI"
+  type: kedro_datasets.ibis.TableDataset
+  table_name: V_DOWNLOADS_BY_COUNTRY
+  database: KEDRO_BI_DB.PYPI
+  connection:
+    backend: snowflake
   credentials: snowflake_credentials
 
 downloads_by_country_table:
-  type: pandas.CSVDataset
+  type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/downloads_by_country.csv
-  save_args:
-    index: False
+  file_format: csv
