@@ -2,10 +2,9 @@ from kedro.pipeline import Pipeline, node
 
 from .nodes import (
     aggregate_project_stats,
-    build_commands_mau,
+    build_command_mau,
     build_mau,
     build_new_users_monthly,
-    build_plugins_mau,
     get_active_events,
     get_unique_users,
 )
@@ -45,13 +44,13 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="build_mau",
             ),
             node(
-                build_plugins_mau,
+                build_command_mau,
                 inputs=["heap_any_command_run", "unique_users", "params:plugins"],
                 outputs="kedro_plugins_mau",
                 name="build_plugins_mau",
             ),
             node(
-                build_commands_mau,
+                build_command_mau,
                 inputs=["heap_any_command_run", "unique_users", "params:commands"],
                 outputs="kedro_commands_mau",
                 name="build_commands_mau",

@@ -33,6 +33,7 @@ def get_active_events(dt_username: ir.Table, unique_users: ir.Table) -> ir.Table
 
 
 def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
+    """Count new Kedro users per month (first seen since 2024-11)."""
     first_dates = (
         active_events.group_by("username")
         .agg(
@@ -51,6 +52,7 @@ def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
 
 
 def build_mau(active_events: ir.Table) -> ir.Table:
+    """Count monthly active unique users by version since 2024-10."""
     return (
         active_events
         .filter(active_events.dt >= ibis.date("2024-10-01"))
@@ -61,21 +63,10 @@ def build_mau(active_events: ir.Table) -> ir.Table:
     )
 
 
-def build_plugins_mau(
-    any_command_run: ir.Table, unique_users: ir.Table, plugins: list[str]
-) -> ir.Table:
-    return _build_command_mau(any_command_run, unique_users, plugins)
-
-
-def build_commands_mau(
-    any_command_run: ir.Table, unique_users: ir.Table, commands: list[str]
-) -> ir.Table:
-    return _build_command_mau(any_command_run, unique_users, commands)
-
-
-def _build_command_mau(
+def build_command_mau(
     any_command_run: ir.Table, unique_users: ir.Table, keep_prefixes: list[str]
 ) -> ir.Table:
+    """Count monthly unique users per command, filtered to the given two-word prefixes."""
     words = any_command_run.command.split(" ")
     base = (
         any_command_run
