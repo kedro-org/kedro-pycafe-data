@@ -22,7 +22,7 @@ def get_unique_users(dt_username: ir.Table) -> ir.Table:
     )
     return (
         min_max
-        .filter(min_max.max_dt.delta(min_max.min_dt, "day") > 8)
+        .filter((min_max.max_dt - min_max.min_dt) > ibis.interval(days=8))
         .select("username")
     )
 
