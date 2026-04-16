@@ -2,9 +2,9 @@ import ibis
 import ibis.expr.types as ir
 
 
-def get_unique_users(heap_stats: ir.Table) -> ir.Table:
-    """Filter to users active on >8 distinct days since 2024-09-01."""
-    base = (
+def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
+    """Aggregate raw events to one row per (username, day) since 2024-09-01."""
+    return (
         heap_stats
         .filter([
             heap_stats.time.date() >= ibis.date("2024-09-01"),
@@ -13,8 +13,12 @@ def get_unique_users(heap_stats: ir.Table) -> ir.Table:
         .group_by(["username", heap_stats.time.date().name("dt")])
         .agg(max_version_prefix=heap_stats.project_version.left(4).max())
     )
-    min_max = base.group_by("username").agg(
-        min_dt=base.dt.min(), max_dt=base.dt.max()
+
+
+def get_unique_users(dt_username: ir.Table) -> ir.Table:
+    """Filter to users active on >8 distinct days."""
+    min_max = dt_username.group_by("username").agg(
+        min_dt=dt_username.dt.min(), max_dt=dt_username.dt.max()
     )
     return (
         min_max
@@ -23,18 +27,9 @@ def get_unique_users(heap_stats: ir.Table) -> ir.Table:
     )
 
 
-def get_active_events(heap_stats: ir.Table, unique_users: ir.Table) -> ir.Table:
-    """Join base event aggregates back to the unique-user list."""
-    base = (
-        heap_stats
-        .filter([
-            heap_stats.time.date() >= ibis.date("2024-09-01"),
-            heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
-        ])
-        .group_by(["username", heap_stats.time.date().name("dt")])
-        .agg(max_version_prefix=heap_stats.project_version.left(4).max())
-    )
-    return base.join(unique_users, "username")[base.columns]
+def get_active_events(dt_username: ir.Table, unique_users: ir.Table) -> ir.Table:
+    """Filter aggregated events to the unique-user list."""
+    return dt_username.join(unique_users, "username")[dt_username.columns]
 
 
 def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
@@ -84,15 +79,15 @@ def _build_command_mau(
     words = any_command_run.command.split(" ")
     base = (
         any_command_run
-        .join(unique_users, any_command_run.username == unique_users.username)
+        .join(unique_users, "username")[any_command_run.columns]
         .filter(any_command_run.time >= ibis.timestamp("2024-10-01"))
-        .mutate(first_two_words=(words[0].concat(" ").concat(words[1])))
+        .mutate(first_two_words=words[0].concat(" ").concat(words[1]))
     )
     return (
         base
         .filter(base.first_two_words.isin(keep_prefixes))
         .mutate(year_month=base.time.truncate("M").strftime("%Y-%m"))
         .group_by(["year_month", "first_two_words"])
-        .agg(unique_users=base.username.nunique())
-        .order_by(["year_month", ibis.desc("unique_users")])
+        .agg(user_count=base.username.nunique())
+        .order_by(["year_month", ibis.desc("user_count")])
     )
