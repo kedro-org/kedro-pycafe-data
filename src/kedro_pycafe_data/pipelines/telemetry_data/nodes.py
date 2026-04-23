@@ -22,6 +22,10 @@ def build_telemetry_data() -> pd.DataFrame:
     session = Session.builder.configs(connection_params).create()
 
     # --- Step 1 ---
+    # The RLIKE predicate below keeps only rows whose PROJECT_VERSION looks
+    # like a real release number (starts with `<digits>.<digit>`, e.g. 0.19,
+    # 1.2.6, 1.10.0). It drops placeholder strings like "test", "dev", "main"
+    
     session.sql("""
         CREATE OR REPLACE TEMPORARY TABLE temp_dt_username AS
         SELECT DATE(time) AS dt,
@@ -31,6 +35,7 @@ def build_telemetry_data() -> pd.DataFrame:
         FROM HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP.KEDRO_PROJECT_STATISTICS
         WHERE DATE(time) >= '2024-09-01'
           AND (is_ci_env IS NULL OR is_ci_env = 'false')
+          AND PROJECT_VERSION RLIKE '^[0-9]+[.][0-9]'
         GROUP BY 1, 2
     """).collect()
 
