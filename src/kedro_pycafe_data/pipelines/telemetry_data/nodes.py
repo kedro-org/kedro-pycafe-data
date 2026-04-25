@@ -1,164 +1,84 @@
-import os
-from snowflake.snowpark import Session
-import pandas as pd
+import ibis
+import ibis.expr.types as ir
 
-def build_telemetry_data() -> pd.DataFrame:
-    """
-    Executes a chain of Snowflake SQL commands with temporary tables
-    and returns the final aggregated DataFrame for new Kedro users per month.
-    """
 
-    # Add hardcoded DB and schema
-    connection_params = {
-        "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-        "user": os.getenv("SNOWFLAKE_USER"),
-        "password": os.getenv("SNOWFLAKE_PASSWORD"),
-        "role": "HEAP_NTD_KEDRO",
-        "warehouse": "HEAP_NTD_KEDRO_WH",
-        "database": "DEMO_DB",
-        "schema": "PUBLIC",
-    }
+def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
+    """Aggregate raw events to one row per (username, day) since 2024-09-01."""
+    return (
+        heap_stats
+        .filter([
+            heap_stats.time.date() >= ibis.date("2024-09-01"),
+            heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
+        ])
+        .group_by(["username", heap_stats.time.date().name("dt")])
+        .agg(max_version_prefix=heap_stats.project_version.left(4).max())
+    )
 
-    session = Session.builder.configs(connection_params).create()
 
-    # --- Step 1 ---
-    session.sql("""
-        CREATE OR REPLACE TEMPORARY TABLE temp_dt_username AS
-        SELECT DATE(time) AS dt,
-               username,
-               MAX(LEFT(PROJECT_VERSION, 4)) AS max_version_prefix,
-               COUNT(*) AS cnt
-        FROM HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP.KEDRO_PROJECT_STATISTICS
-        WHERE DATE(time) >= '2024-09-01'
-          AND (is_ci_env IS NULL OR is_ci_env = 'false')
-        GROUP BY 1, 2
-    """).collect()
+def get_unique_users(dt_username: ir.Table) -> ir.Table:
+    """Filter to users active on >8 distinct days."""
+    min_max = dt_username.group_by("username").agg(
+        min_dt=dt_username.dt.min(), max_dt=dt_username.dt.max()
+    )
+    return (
+        min_max
+        .filter((min_max.max_dt - min_max.min_dt) > ibis.interval(days=8))
+        .select("username")
+    )
 
-    # --- Step 2 ---
-    session.sql("""
-        CREATE OR REPLACE TEMPORARY TABLE temp_username_min_max_dt AS
-        SELECT username,
-               MIN(dt) AS min_dt,
-               MAX(dt) AS max_dt
-        FROM temp_dt_username
-        GROUP BY 1
-    """).collect()
 
-    # --- Step 3 ---
-    session.sql("""
-        CREATE OR REPLACE TEMPORARY TABLE temp_username_uniques AS
-        SELECT username
-        FROM temp_username_min_max_dt
-        WHERE DATEDIFF('day', min_dt, max_dt) > 8
-    """).collect()
+def get_active_events(dt_username: ir.Table, unique_users: ir.Table) -> ir.Table:
+    """Filter aggregated events to the unique-user list."""
+    return dt_username.join(unique_users, "username")[dt_username.columns]
 
-    # --- Step 4 ---
-    session.sql("""
-        CREATE OR REPLACE TEMPORARY TABLE temp_dt_username_unique AS
-        SELECT a.*
-        FROM temp_dt_username a
-        JOIN temp_username_uniques b
-          ON a.username = b.username
-         AND b.username IS NOT NULL
-    """).collect()
 
-    # --- Step 5 --- here I took MIN(max_version_prefix) instead of MAX to get the version that was on the first date
-    session.sql("""
-        CREATE OR REPLACE TEMPORARY TABLE temp_dt_username_unique_first_date AS
-        SELECT username, MIN(dt) AS first_date, MIN(max_version_prefix) as max_version_prefix
-        FROM temp_dt_username_unique
-        GROUP BY username
-        ORDER BY first_date
-    """).collect()
-
-    # --- Final result 1: new Kedro users ---
-    new_users_df = session.sql("""
-        SELECT first_year_month, max_version_prefix, COUNT(*) AS count
-        FROM (
-            SELECT *,
-                   TO_CHAR(first_date, 'YYYY-MM') AS first_year_month
-            FROM temp_dt_username_unique_first_date
-        ) t
-        WHERE first_year_month >= '2024-11'
-        GROUP BY 1, 2
-        ORDER BY 1, 2
-    """).to_pandas()
-
-    # --- Final result 2: monthly active users (MAU) ---
-    mau_df = session.sql("""
-        SELECT 
-            TO_CHAR(DATE_TRUNC('month', dt), 'YYYY-MM') AS year_month,
-            max_version_prefix,
-            COUNT(DISTINCT username) AS mau
-        FROM temp_dt_username_unique
-        WHERE dt >= '2024-10-01'
-        GROUP BY year_month, max_version_prefix
-        ORDER BY year_month, max_version_prefix
-    """).to_pandas()
-
-    # --- 3️⃣ Kedro plugins MAU ---
-    plugins_mau_df = session.sql("""
-        SELECT 
-            TO_CHAR(DATE_TRUNC('month', time), 'YYYY-MM') AS year_month,
-            first_two_words,
-            COUNT(DISTINCT username) AS unique_users
-        FROM (
-            SELECT 
-                a.command,
-                SPLIT(command, ' ')[0] || ' ' || SPLIT(command, ' ')[1] AS first_two_words,
-                b.username,
-                a.time
-            FROM HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP.ANY_COMMAND_RUN a
-            JOIN temp_username_uniques b 
-                ON a.username = b.username
-            WHERE time >= '2024-10-01'
-        ) t
-        WHERE first_two_words IN (
-            'kedro mlflow',
-            'kedro docker',
-            'kedro airflow',
-            'kedro databricks',
-            'kedro azureml',
-            'kedro vertexai',
-            'kedro gql',
-            'kedro boot',
-            'kedro sagemaker',
-            'kedro coda',
-            'kedro kubeflow'
+def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
+    """Count new Kedro users per month (first seen since 2024-11)."""
+    first_dates = (
+        active_events.group_by("username")
+        .agg(
+            first_date=active_events.dt.min(),
+            max_version_prefix=active_events.max_version_prefix.min(),
         )
-        GROUP BY year_month, first_two_words
-        ORDER BY year_month, unique_users DESC
-    """).to_pandas()
+    )
+    return (
+        first_dates
+        .mutate(first_year_month=first_dates.first_date.strftime("%Y-%m"))
+        .filter(lambda t: t.first_year_month >= "2024-11")
+        .group_by(["first_year_month", "max_version_prefix"])
+        .agg(count=ibis._.count())
+        .order_by(["first_year_month", "max_version_prefix"])
+    )
 
-    # --- 4️⃣ Kedro core commands MAU ---
-    commands_mau_df = session.sql("""
-        SELECT 
-            TO_CHAR(DATE_TRUNC('month', time), 'YYYY-MM') AS year_month,
-            first_two_words,
-            COUNT(DISTINCT username) AS unique_users
-        FROM (
-            SELECT 
-                a.command,
-                SPLIT(command, ' ')[0] || ' ' || SPLIT(command, ' ')[1] AS first_two_words,
-                b.username,
-                a.time
-            FROM HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP.ANY_COMMAND_RUN a
-            JOIN temp_username_uniques b 
-                ON a.username = b.username
-            WHERE time >= '2024-10-01'
-        ) t
-        WHERE first_two_words IN (
-            'kedro run',
-            'kedro viz',
-            'kedro new',
-            'kedro pipeline',
-            'kedro jupyter',
-            'kedro ipython',
-            'kedro package'
-        )
-        GROUP BY year_month, first_two_words
-        ORDER BY year_month, unique_users DESC
-    """).to_pandas()
 
-    session.close()
-    return new_users_df, mau_df, plugins_mau_df, commands_mau_df
+def build_mau(active_events: ir.Table) -> ir.Table:
+    """Count monthly active unique users by version since 2024-10."""
+    return (
+        active_events
+        .filter(active_events.dt >= ibis.date("2024-10-01"))
+        .mutate(year_month=active_events.dt.truncate("M").strftime("%Y-%m"))
+        .group_by(["year_month", "max_version_prefix"])
+        .agg(mau=active_events.username.nunique())
+        .order_by(["year_month", "max_version_prefix"])
+    )
+
+
+def build_command_mau(
+    any_command_run: ir.Table, unique_users: ir.Table, keep_prefixes: list[str]
+) -> ir.Table:
+    """Count monthly unique users per command, filtered to the given two-word prefixes."""
+    words = any_command_run.command.split(" ")
+    base = (
+        any_command_run
+        .join(unique_users, "username")[any_command_run.columns]
+        .filter(any_command_run.time >= ibis.timestamp("2024-10-01"))
+        .mutate(first_two_words=words[0].concat(" ").concat(words[1]))
+    )
+    return (
+        base
+        .filter(base.first_two_words.isin(keep_prefixes))
+        .mutate(year_month=base.time.truncate("M").strftime("%Y-%m"))
+        .group_by(["year_month", "first_two_words"])
+        .agg(user_count=base.username.nunique())
+        .order_by(["year_month", ibis.desc("user_count")])
+    )
