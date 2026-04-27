@@ -55,6 +55,7 @@ jobs:
           git add -f data/02_intermediate/mau_kedro.csv || true
           git add -f data/02_intermediate/kedro_plugins_mau.csv || true
           git add -f data/02_intermediate/kedro_commands_mau.csv || true
+          git add -f data/02_intermediate/cohort_retention.csv || true
 
           git commit -m "Update pipeline outputs [skip ci]" || echo "No changes to commit"
 

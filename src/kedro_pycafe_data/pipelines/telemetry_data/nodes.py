@@ -71,6 +71,36 @@ def build_telemetry_data() -> pd.DataFrame:
         ORDER BY first_date
     """).collect()
 
+    # --- Step 6: cohort retention (qualified users only, cohorts from 2024-11, horizon 0-12 months) ---
+    cohort_retention_df = session.sql("""
+        WITH cohort AS (
+            SELECT username,
+                   DATE_TRUNC('MONTH', first_date) AS cohort_month
+            FROM temp_dt_username_unique_first_date
+            WHERE TO_CHAR(first_date, 'YYYY-MM') >= '2024-11'
+        ),
+        activity AS (
+            SELECT DISTINCT username,
+                   DATE_TRUNC('MONTH', dt) AS active_month
+            FROM temp_dt_username_unique
+        ),
+        sizes AS (
+            SELECT cohort_month, COUNT(*) AS cohort_size
+            FROM cohort
+            GROUP BY 1
+        )
+        SELECT TO_CHAR(c.cohort_month, 'YYYY-MM') AS cohort_month,
+               DATEDIFF('month', c.cohort_month, a.active_month) AS month_offset,
+               COUNT(DISTINCT a.username) AS active_users,
+               MAX(s.cohort_size) AS cohort_size
+        FROM cohort c
+        JOIN activity a ON c.username = a.username
+        JOIN sizes s ON c.cohort_month = s.cohort_month
+        WHERE DATEDIFF('month', c.cohort_month, a.active_month) BETWEEN 0 AND 12
+        GROUP BY 1, 2
+        ORDER BY 1, 2
+    """).to_pandas()
+
     # --- Final result 1: new Kedro users ---
     new_users_df = session.sql("""
         SELECT first_year_month, max_version_prefix, COUNT(*) AS count
@@ -161,4 +191,4 @@ def build_telemetry_data() -> pd.DataFrame:
     """).to_pandas()
 
     session.close()
-    return new_users_df, mau_df, plugins_mau_df, commands_mau_df
+    return new_users_df, mau_df, plugins_mau_df, commands_mau_df, cohort_retention_df
