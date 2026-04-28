@@ -1,11 +1,37 @@
 import os
+from typing import Tuple
 from snowflake.snowpark import Session
 import pandas as pd
 
-def build_telemetry_data() -> pd.DataFrame:
-    """
-    Executes a chain of Snowflake SQL commands with temporary tables
-    and returns the final aggregated DataFrame for new Kedro users per month.
+# Earliest cohort month included in the cohort retention analysis. Anything
+# before this date is excluded so the heatmap focuses on cohorts with full
+# Heap telemetry coverage.
+COHORT_START_MONTH = "2024-11"
+
+# How many of the most-recent monthly cohorts to suppress from the cohort
+# retention output. Recent cohorts have an unstable `cohort_size` because
+# late-qualifiers (users who eventually exceed the >8-day activity span) keep
+# joining the cohort retroactively. Two months gives those denominators time
+# to settle.
+COHORT_TRAILING_HIDE_MONTHS = 2
+
+
+def build_telemetry_data() -> Tuple[
+    pd.DataFrame,  # new_users_df            -> new_kedro_users_monthly.csv
+    pd.DataFrame,  # mau_df                  -> mau_kedro.csv
+    pd.DataFrame,  # plugins_mau_df          -> kedro_plugins_mau.csv
+    pd.DataFrame,  # commands_mau_df         -> kedro_commands_mau.csv
+    pd.DataFrame,  # cohort_retention_df     -> cohort_retention.csv
+]:
+    """Run the Snowflake telemetry queries and return five dataframes.
+
+    Pipeline outline:
+      Step 1-5  Build qualified-user temp tables (>8 days of non-CI activity
+                on a real release version of Kedro).
+      Step 6    Cohort retention matrix in long format — one row per
+                (cohort_month, month_offset) including explicit zero-retention
+                cells; latest two cohorts suppressed for stability.
+      Final     New users, MAU, plugin MAU and core-command MAU dataframes.
     """
 
     # Add hardcoded DB and schema
@@ -76,13 +102,29 @@ def build_telemetry_data() -> pd.DataFrame:
         ORDER BY first_date
     """).collect()
 
-    # --- Step 6: cohort retention (qualified users only, cohorts from 2024-11, horizon 0-12 months) ---
-    cohort_retention_df = session.sql("""
+    # --- Step 6: cohort retention ---
+    # Definition: cohort = qualified users (>8 day activity span) whose first
+    # observed activity falls in a given month. For each cohort we report the
+    # number of users active 0..12 months later.
+    #
+    # Two correctness measures applied here:
+    #   1. The latest `COHORT_TRAILING_HIDE_MONTHS` cohorts are filtered out:
+    #      their cohort_size is unstable while late-qualifiers backfill.
+    #   2. A rectangular (cohort x offset) grid is generated up to the
+    #      current month and LEFT JOINed against activity, so cells with
+    #      genuine zero retention are recorded as `active_users = 0` rather
+    #      than silently dropped (which previously made them indistinguishable
+    #      from "future month, no data yet").
+    cohort_retention_df = session.sql(f"""
         WITH cohort AS (
             SELECT username,
                    DATE_TRUNC('MONTH', first_date) AS cohort_month
             FROM temp_dt_username_unique_first_date
-            WHERE TO_CHAR(first_date, 'YYYY-MM') >= '2024-11'
+            WHERE TO_CHAR(first_date, 'YYYY-MM') >= '{COHORT_START_MONTH}'
+              AND DATE_TRUNC('MONTH', first_date) <= DATE_TRUNC(
+                      'MONTH',
+                      DATEADD('month', -{COHORT_TRAILING_HIDE_MONTHS}, CURRENT_DATE())
+                  )
         ),
         activity AS (
             SELECT DISTINCT username,
@@ -93,15 +135,32 @@ def build_telemetry_data() -> pd.DataFrame:
             SELECT cohort_month, COUNT(*) AS cohort_size
             FROM cohort
             GROUP BY 1
+        ),
+        offsets AS (
+            -- Rectangular skeleton: one row per (cohort_month, offset 0..12),
+            -- truncated to offsets that have already elapsed.
+            SELECT s.cohort_month,
+                   off.value::INT AS month_offset
+            FROM   sizes s,
+                   LATERAL FLATTEN(input => ARRAY_GENERATE_RANGE(0, 13)) off
+            WHERE  DATEADD('month', off.value::INT, s.cohort_month)
+                       <= DATE_TRUNC('MONTH', CURRENT_DATE())
         )
-        SELECT TO_CHAR(c.cohort_month, 'YYYY-MM') AS cohort_month,
-               DATEDIFF('month', c.cohort_month, a.active_month) AS month_offset,
-               COUNT(DISTINCT a.username) AS active_users,
-               MAX(s.cohort_size) AS cohort_size
-        FROM cohort c
-        JOIN activity a ON c.username = a.username
-        JOIN sizes s ON c.cohort_month = s.cohort_month
-        WHERE DATEDIFF('month', c.cohort_month, a.active_month) BETWEEN 0 AND 12
+        SELECT TO_CHAR(o.cohort_month, 'YYYY-MM')                   AS cohort_month,
+               o.month_offset                                       AS month_offset,
+               COUNT(DISTINCT a.username)                           AS active_users,
+               MAX(s.cohort_size)                                   AS cohort_size,
+               ROUND(
+                   100.0 * COUNT(DISTINCT a.username)
+                         / NULLIF(MAX(s.cohort_size), 0),
+                   2
+               )                                                    AS retention_pct
+        FROM   offsets o
+        JOIN   sizes   s ON o.cohort_month = s.cohort_month
+        LEFT JOIN cohort   c ON o.cohort_month = c.cohort_month
+        LEFT JOIN activity a
+               ON c.username = a.username
+              AND DATEDIFF('month', o.cohort_month, a.active_month) = o.month_offset
         GROUP BY 1, 2
         ORDER BY 1, 2
     """).to_pandas()
