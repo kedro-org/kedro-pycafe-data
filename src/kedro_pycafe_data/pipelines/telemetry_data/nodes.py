@@ -35,7 +35,7 @@ def build_telemetry_data() -> pd.DataFrame:
         FROM HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP.KEDRO_PROJECT_STATISTICS
         WHERE DATE(time) >= '2024-09-01'
           AND (is_ci_env IS NULL OR is_ci_env = 'false')
-          AND PROJECT_VERSION RLIKE '^[0-9]+[.][0-9]'
+          AND PROJECT_VERSION RLIKE '^[0-9]+[.][0-9].*$'
         GROUP BY 1, 2
     """).collect()
 
