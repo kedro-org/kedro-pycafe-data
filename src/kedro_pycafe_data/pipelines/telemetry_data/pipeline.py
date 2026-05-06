@@ -12,6 +12,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                     "mau_kedro",
                     "kedro_plugins_mau",
                     "kedro_commands_mau",
+                    "cohort_retention",
                 ],
                 name="build_telemetry_data",
             ),

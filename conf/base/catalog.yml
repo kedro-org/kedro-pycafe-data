@@ -32,6 +32,12 @@ kedro_commands_mau:
   type: pandas.CSVDataset
   filepath: data/02_intermediate/kedro_commands_mau.csv
 
+cohort_retention:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/cohort_retention.csv
+  save_args:
+    index: False
+
 downloads_by_country:
   type: kedro_datasets.snowflake.SnowparkTableDataset
   table_name: "V_DOWNLOADS_BY_COUNTRY"

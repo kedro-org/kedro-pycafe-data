@@ -26,7 +26,7 @@ Extracts PyPI download data from Snowflake views and saves them locally as CSV:
 
 ### `telemetry_data`
 
-Processes Heap telemetry events from `HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP` in Snowflake via a single `build_telemetry_data` node that produces four outputs:
+Processes Heap telemetry events from `HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP` in Snowflake via a single `build_telemetry_data` node that produces five outputs:
 
 | Output | Description |
 |---|---|
@@ -34,6 +34,7 @@ Processes Heap telemetry events from `HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP` in Sno
 | `mau_kedro.csv` | Monthly active users segmented by Kedro version |
 | `kedro_plugins_mau.csv` | Monthly unique users per plugin (11 plugins tracked) |
 | `kedro_commands_mau.csv` | Monthly unique users per core command (7 commands tracked) |
+| `cohort_retention.csv` | Monthly cohort retention matrix (long format): for each cohort month, how many qualified users were still active 0-12 months later, plus pre-computed `retention_pct`. Latest 2 cohorts suppressed while their `cohort_size` is still settling. |
 
 ## Prerequisites
 
