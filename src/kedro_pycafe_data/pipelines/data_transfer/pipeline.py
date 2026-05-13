@@ -1,4 +1,4 @@
-from kedro.pipeline import Pipeline, node
+from kedro.pipeline import Node, Pipeline
 
 from .nodes import identity
 
@@ -6,13 +6,13 @@ from .nodes import identity
 def create_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
         [
-            node(
+            Node(
                 identity,
                 inputs="pypi_kedro_downloads",
                 outputs="pypi_kedro_downloads_table",
                 name="fetch_and_save_snowflake_data",
             ),
-            node(
+            Node(
                 identity,
                 inputs="downloads_by_country",
                 outputs="downloads_by_country_table",
