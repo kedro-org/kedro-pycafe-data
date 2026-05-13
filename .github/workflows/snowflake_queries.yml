@@ -50,7 +50,8 @@ jobs:
           # Force-add generated CSVs even if ignored
           git add -f data/02_intermediate/pypi_kedro_downloads.csv || true
           git add -f data/02_intermediate/downloads_by_country.csv || true
-          
+          git add -f data/02_intermediate/pypi_plugin_downloads.csv || true
+
           git add -f data/02_intermediate/new_kedro_users_monthly.csv || true
           git add -f data/02_intermediate/mau_kedro.csv || true
           git add -f data/02_intermediate/kedro_plugins_mau.csv || true

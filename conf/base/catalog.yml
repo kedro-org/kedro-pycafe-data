@@ -12,6 +12,19 @@ pypi_kedro_downloads_table:
   save_args:
     index: False
 
+pypi_plugin_downloads:
+  type: kedro_datasets.snowflake.SnowparkTableDataset
+  table_name: "V_PYPI_PLUGIN_DOWNLOADS"
+  database: "KEDRO_BI_DB"
+  schema: "PYPI"
+  credentials: snowflake_credentials
+
+pypi_plugin_downloads_table:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/pypi_plugin_downloads.csv
+  save_args:
+    index: False
+
 new_kedro_users_monthly:
   type: pandas.CSVDataset
   filepath: data/02_intermediate/new_kedro_users_monthly.csv

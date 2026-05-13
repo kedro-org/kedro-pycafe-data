@@ -23,6 +23,7 @@ Extracts PyPI download data from Snowflake views and saves them locally as CSV:
 |---|---|---|
 | `fetch_and_save_snowflake_data` | `KEDRO_BI_DB.PYPI.V_PYPI_KEDRO_DOWNLOADS` | `data/02_intermediate/pypi_kedro_downloads.csv` |
 | `fetch_and_save_downloads_by_country` | `KEDRO_BI_DB.PYPI.V_DOWNLOADS_BY_COUNTRY` | `data/02_intermediate/downloads_by_country.csv` |
+| `fetch_and_save_plugin_downloads` | `KEDRO_BI_DB.PYPI.V_PYPI_PLUGIN_DOWNLOADS` | `data/02_intermediate/pypi_plugin_downloads.csv` |
 
 ### `telemetry_data`
 
