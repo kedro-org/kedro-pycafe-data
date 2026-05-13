@@ -9,6 +9,8 @@ def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
         .filter([
             heap_stats.time.date() >= ibis.date("2024-09-01"),
             heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
+            # Keep only real release versions (e.g. 0.19, 1.2.6); drops "test", "dev", "main"
+            heap_stats.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
         ])
         .group_by(["username", heap_stats.time.date().name("dt")])
         .agg(max_version_prefix=heap_stats.project_version.left(4).max())
