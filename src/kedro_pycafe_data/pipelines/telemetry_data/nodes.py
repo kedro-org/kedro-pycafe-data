@@ -18,7 +18,7 @@ def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
 
 
 def get_unique_users(dt_username: ir.Table) -> ir.Table:
-    """Filter to users active on >8 distinct days."""
+    """Filter to users whose activity spans more than 8 days (max_dt - min_dt > 8)."""
     min_max = dt_username.group_by("username").agg(
         min_dt=dt_username.dt.min(), max_dt=dt_username.dt.max()
     )
@@ -50,6 +50,7 @@ def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
         .group_by(["first_year_month", "max_version_prefix"])
         .agg(count=ibis._.count())
         .order_by(["first_year_month", "max_version_prefix"])
+        .rename(str.upper)
     )
 
 
@@ -62,6 +63,7 @@ def build_mau(active_events: ir.Table) -> ir.Table:
         .group_by(["year_month", "max_version_prefix"])
         .agg(mau=active_events.username.nunique())
         .order_by(["year_month", "max_version_prefix"])
+        .rename(str.upper)
     )
 
 
@@ -147,6 +149,7 @@ def build_cohort_retention(
             ).round(2)
         )
         .order_by(["cohort_month", "month_offset"])
+        .rename(str.upper)
     )
 
 
@@ -168,4 +171,5 @@ def build_command_mau(
         .group_by(["year_month", "first_two_words"])
         .agg(user_count=base.username.nunique())
         .order_by(["year_month", ibis.desc("user_count")])
+        .rename(str.upper)
     )
