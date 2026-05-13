@@ -65,6 +65,91 @@ def build_mau(active_events: ir.Table) -> ir.Table:
     )
 
 
+def build_cohort_retention(
+    active_events: ir.Table,
+    cohort_start_month: str,
+    cohort_trailing_hide_months: int,
+) -> ir.Table:
+    """Cohort × month retention matrix; zero-retention cells are explicit, not missing."""
+    first_dates = (
+        active_events.group_by("username")
+        .agg(first_date=active_events.dt.min())
+        .mutate(cohort_month=lambda t: t.first_date.truncate("M"))
+    )
+
+    cutoff_month = (
+        ibis.now().date().truncate("M")
+        - ibis.interval(months=cohort_trailing_hide_months)
+    )
+
+    cohort = (
+        first_dates
+        .filter([
+            first_dates.cohort_month.strftime("%Y-%m") >= cohort_start_month,
+            first_dates.cohort_month <= cutoff_month,
+        ])
+        .select("username", "cohort_month")
+    )
+
+    # Rename to disambiguate after left join: active_username is NULL for non-active rows,
+    # which makes COUNT(DISTINCT active_username) naturally give 0 for those cells.
+    activity = (
+        active_events
+        .select("username", active_month=active_events.dt.truncate("M"))
+        .distinct()
+        .rename(active_username="username")
+    )
+
+    sizes = cohort.group_by("cohort_month").agg(cohort_size=ibis._.count())
+
+    # Rectangular (cohort × month offset) grid, clipped to elapsed months.
+    # ibis.range(0, 13).unnest() compiles to LATERAL FLATTEN(ARRAY_GENERATE_RANGE(0, 13))
+    # on Snowflake, producing one row per offset 0–12 per cohort month.
+    today = ibis.now().date()
+    offsets = (
+        sizes
+        .mutate(month_offset=ibis.range(0, 13))
+        .unnest("month_offset")
+        .filter(
+            lambda t: (
+                (today.year() - t.cohort_month.year()) * 12
+                + (today.month() - t.cohort_month.month())
+                >= t.month_offset
+            )
+        )
+    )
+
+    # Expand grid to per-user rows, then left-join activity at the target month.
+    # Month difference via year/month components mirrors DATEDIFF('month', ...).
+    expanded = offsets.join(cohort, "cohort_month")
+    month_diff = (
+        (activity.active_month.year() - expanded.cohort_month.year()) * 12
+        + (activity.active_month.month() - expanded.cohort_month.month())
+    )
+
+    return (
+        expanded
+        .left_join(
+            activity,
+            (expanded.username == activity.active_username)
+            & (month_diff == expanded.month_offset),
+        )
+        .mutate(cohort_month_str=lambda t: t.cohort_month.strftime("%Y-%m"))
+        .group_by(["cohort_month_str", "month_offset"])
+        .agg(
+            active_users=lambda t: t.active_username.nunique(),
+            cohort_size=lambda t: t.cohort_size.max(),
+        )
+        .rename(cohort_month="cohort_month_str")
+        .mutate(
+            retention_pct=(
+                100.0 * ibis._.active_users / ibis._.cohort_size.nullif(0)
+            ).round(2)
+        )
+        .order_by(["cohort_month", "month_offset"])
+    )
+
+
 def build_command_mau(
     any_command_run: ir.Table, unique_users: ir.Table, keep_prefixes: list[str]
 ) -> ir.Table:

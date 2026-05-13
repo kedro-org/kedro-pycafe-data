@@ -48,10 +48,9 @@ pypi_kedro_downloads_table:
   file_format: csv
 
 cohort_retention:
-  type: pandas.CSVDataset
+  type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/cohort_retention.csv
-  save_args:
-    index: False
+  file_format: csv
 
 downloads_by_country:
   type: kedro_datasets.ibis.TableDataset

@@ -2,6 +2,7 @@ from kedro.pipeline import Node, Pipeline
 
 from .nodes import (
     aggregate_project_stats,
+    build_cohort_retention,
     build_command_mau,
     build_mau,
     build_new_users_monthly,
@@ -54,6 +55,16 @@ def create_pipeline(**kwargs) -> Pipeline:
                 inputs=["heap_any_command_run", "unique_users", "params:commands"],
                 outputs="kedro_commands_mau",
                 name="build_commands_mau",
+            ),
+            Node(
+                build_cohort_retention,
+                inputs=[
+                    "active_events",
+                    "params:cohort_start_month",
+                    "params:cohort_trailing_hide_months",
+                ],
+                outputs="cohort_retention",
+                name="build_cohort_retention",
             ),
         ]
     )

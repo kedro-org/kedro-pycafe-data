@@ -1,3 +1,6 @@
+cohort_start_month: "2024-11"
+cohort_trailing_hide_months: 2
+
 plugins:
   - "kedro mlflow"
   - "kedro docker"
