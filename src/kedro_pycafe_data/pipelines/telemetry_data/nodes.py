@@ -39,14 +39,14 @@ def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
     first_dates = (
         active_events.group_by("username")
         .agg(
-            first_date=lambda t: t.dt.min(),
-            max_version_prefix=lambda t: t.max_version_prefix.min(),
+            first_date=ibis._.dt.min(),
+            max_version_prefix=ibis._.max_version_prefix.min(),
         )
     )
     return (
         first_dates
-        .mutate(first_year_month=lambda t: t.first_date.strftime("%Y-%m"))
-        .filter(lambda t: t.first_year_month >= "2024-11")
+        .mutate(first_year_month=ibis._.first_date.strftime("%Y-%m"))
+        .filter(ibis._.first_year_month >= "2024-11")
         .group_by(["first_year_month", "max_version_prefix"])
         .agg(count=ibis._.count())
         .order_by(["first_year_month", "max_version_prefix"])
@@ -57,10 +57,10 @@ def build_mau(active_events: ir.Table) -> ir.Table:
     """Count monthly active unique users by version since 2024-10."""
     return (
         active_events
-        .filter(lambda t: t.dt >= ibis.date("2024-10-01"))
-        .mutate(year_month=lambda t: t.dt.truncate("M").strftime("%Y-%m"))
+        .filter(ibis._.dt >= ibis.date("2024-10-01"))
+        .mutate(year_month=ibis._.dt.truncate("M").strftime("%Y-%m"))
         .group_by(["year_month", "max_version_prefix"])
-        .agg(mau=lambda t: t.username.nunique())
+        .agg(mau=ibis._.username.nunique())
         .order_by(["year_month", "max_version_prefix"])
     )
 
@@ -84,6 +84,7 @@ def build_cohort_retention(
     cohort = (
         first_dates
         .filter([
+            # Earliest cohort with full Heap telemetry coverage.
             first_dates.cohort_month.strftime("%Y-%m") >= "2024-11",
             first_dates.cohort_month <= cutoff_month,
         ])
@@ -153,17 +154,18 @@ def build_command_mau(
     any_command_run: ir.Table, unique_users: ir.Table, keep_prefixes: list[str]
 ) -> ir.Table:
     """Count monthly unique users per command, filtered to the given two-word prefixes."""
+    words = any_command_run.command.split(" ")
     base = (
         any_command_run
         .join(unique_users, "username")[any_command_run.columns]
-        .filter(lambda t: t.time >= ibis.timestamp("2024-10-01"))
-        .mutate(first_two_words=lambda t: t.command.split(" ")[0].concat(" ").concat(t.command.split(" ")[1]))
+        .filter(ibis._.time >= ibis.timestamp("2024-10-01"))
+        .mutate(first_two_words=words[0].concat(" ").concat(words[1]))
     )
     return (
         base
-        .filter(lambda t: t.first_two_words.isin(keep_prefixes))
-        .mutate(year_month=lambda t: t.time.truncate("M").strftime("%Y-%m"))
+        .filter(ibis._.first_two_words.isin(keep_prefixes))
+        .mutate(year_month=ibis._.time.truncate("M").strftime("%Y-%m"))
         .group_by(["year_month", "first_two_words"])
-        .agg(user_count=lambda t: t.username.nunique())
+        .agg(user_count=ibis._.username.nunique())
         .order_by(["year_month", ibis.desc("user_count")])
     )

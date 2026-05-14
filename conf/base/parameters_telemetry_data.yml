@@ -1,3 +1,8 @@
+# How many of the most-recent monthly cohorts to suppress from the cohort
+# retention output. Recent cohorts have an unstable cohort_size because
+# late-qualifiers (users who eventually exceed the >8-day activity span) keep
+# joining the cohort retroactively. Two months gives those denominators time
+# to settle.
 cohort_trailing_hide_months: 2
 
 plugins:
