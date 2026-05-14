@@ -58,11 +58,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
             Node(
                 build_cohort_retention,
-                inputs=[
-                    "active_events",
-                    "params:cohort_start_month",
-                    "params:cohort_trailing_hide_months",
-                ],
+                inputs=["active_events", "params:cohort_trailing_hide_months"],
                 outputs="cohort_retention",
                 name="build_cohort_retention",
             ),
