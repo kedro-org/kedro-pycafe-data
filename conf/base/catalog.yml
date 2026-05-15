@@ -18,21 +18,33 @@ new_kedro_users_monthly:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/new_kedro_users_monthly.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
 mau_kedro:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/mau_kedro.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
 kedro_plugins_mau:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/kedro_plugins_mau.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
 kedro_commands_mau:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/kedro_commands_mau.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
 pypi_kedro_downloads:
   type: kedro_datasets.ibis.TableDataset
@@ -46,11 +58,17 @@ pypi_kedro_downloads_table:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/pypi_kedro_downloads.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: snowflake_credentials
 
 cohort_retention:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/cohort_retention.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
 
 downloads_by_country:
   type: kedro_datasets.ibis.TableDataset
@@ -64,3 +82,6 @@ downloads_by_country_table:
   type: kedro_datasets.ibis.FileDataset
   filepath: data/02_intermediate/downloads_by_country.csv
   file_format: csv
+  connection:
+    backend: snowflake
+  credentials: snowflake_credentials

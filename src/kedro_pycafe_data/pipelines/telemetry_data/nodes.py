@@ -166,6 +166,6 @@ def build_command_mau(
         .filter(ibis._.first_two_words.isin(keep_prefixes))
         .mutate(year_month=ibis._.time.truncate("M").strftime("%Y-%m"))
         .group_by(["year_month", "first_two_words"])
-        .agg(user_count=ibis._.username.nunique())
+        .agg(unique_users=ibis._.username.nunique())
         .order_by(["year_month", ibis.desc("user_count")])
     )
