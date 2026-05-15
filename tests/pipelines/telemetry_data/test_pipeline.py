@@ -1,14 +1,14 @@
 import logging
 from pathlib import Path
 
-import ibis
 import pytest
 from kedro.io import DataCatalog
 from kedro.runner import SequentialRunner
+from kedro_datasets.ibis import FileDataset
 
 from kedro_pycafe_data.pipelines.telemetry_data.pipeline import create_pipeline
 
-FIXTURES = Path(__file__).parent
+DATA_DIR = Path(__file__).parent
 
 PLUGINS = [
     "kedro mlflow",
@@ -37,23 +37,23 @@ COMMANDS = [
 
 @pytest.fixture
 def catalog():
-    conn = ibis.duckdb.connect()
-    heap_stats = conn.read_csv(
-        str(FIXTURES / "heap_project_statistics.csv"),
-        columns={
-            "time": "TIMESTAMP",
-            "username": "VARCHAR",
-            "is_ci_env": "VARCHAR",
-            "project_version": "VARCHAR",
+    catalog = DataCatalog()
+    catalog["heap_project_statistics"] = FileDataset(
+        filepath=str(DATA_DIR / "heap_project_statistics.csv"),
+        file_format="csv",
+        load_args={
+            "columns": {
+                "time": "TIMESTAMP",
+                "username": "VARCHAR",
+                "is_ci_env": "VARCHAR",
+                "project_version": "VARCHAR",
+            }
         },
     )
-    any_command_run = conn.read_csv(
-        str(FIXTURES / "heap_any_command_run.csv"),
+    catalog["heap_any_command_run"] = FileDataset(
+        filepath=str(DATA_DIR / "heap_any_command_run.csv"),
+        file_format="csv",
     )
-
-    catalog = DataCatalog()
-    catalog["heap_project_statistics"] = heap_stats
-    catalog["heap_any_command_run"] = any_command_run
     catalog["params:plugins"] = PLUGINS
     catalog["params:commands"] = COMMANDS
     catalog["params:cohort_trailing_hide_months"] = 2
