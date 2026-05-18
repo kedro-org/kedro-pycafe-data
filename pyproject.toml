@@ -7,7 +7,13 @@ requires-python = ">=3.9"
 name = "kedro_pycafe_data"
 readme = "README.md"
 dynamic = [ "version",]
-dependencies = [ "ipython>=8.10", "jupyterlab>=3.0", "notebook", "kedro~=1.0.0",]
+dependencies = [ "ipython>=8.10", "jupyterlab>=3.0", "notebook", "kedro~=1.0.0", "kedro-datasets[ibis-snowflake]",]
+
+[dependency-groups]
+dev = [
+  "kedro-datasets[ibis-duckdb]",
+  "pytest",
+]
 
 [project.scripts]
 kedro-pycafe-data = "kedro_pycafe_data.__main__:main"
