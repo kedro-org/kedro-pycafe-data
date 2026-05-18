@@ -4,6 +4,7 @@ import ibis.expr.types as ir
 
 def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
     """Aggregate raw events to one row per (username, day) since 2024-09-01."""
+    heap_stats = heap_stats.rename(str.lower)
     return (
         heap_stats
         .filter([
@@ -154,6 +155,7 @@ def build_command_mau(
     any_command_run: ir.Table, unique_users: ir.Table, keep_prefixes: list[str]
 ) -> ir.Table:
     """Count monthly unique users per command, filtered to the given two-word prefixes."""
+    any_command_run = any_command_run.rename(str.lower)
     words = any_command_run.command.split(" ")
     base = (
         any_command_run
