@@ -1,5 +1,28 @@
-# This is a boilerplate parameters config generated for pipeline 'telemetry_data'
-# using Kedro 1.0.0.
-#
-# Documentation for this file format can be found in "Parameters"
-# Link: https://docs.kedro.org/en/1.0.0/configuration/parameters.html
+# How many of the most-recent monthly cohorts to suppress from the cohort
+# retention output. Recent cohorts have an unstable cohort_size because
+# late-qualifiers (users who eventually exceed the >8-day activity span) keep
+# joining the cohort retroactively. Two months gives those denominators time
+# to settle.
+cohort_trailing_hide_months: 2
+
+plugins:
+  - "kedro mlflow"
+  - "kedro docker"
+  - "kedro airflow"
+  - "kedro databricks"
+  - "kedro azureml"
+  - "kedro vertexai"
+  - "kedro gql"
+  - "kedro boot"
+  - "kedro sagemaker"
+  - "kedro coda"
+  - "kedro kubeflow"
+
+commands:
+  - "kedro run"
+  - "kedro viz"
+  - "kedro new"
+  - "kedro pipeline"
+  - "kedro jupyter"
+  - "kedro ipython"
+  - "kedro package"
