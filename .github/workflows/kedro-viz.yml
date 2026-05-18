@@ -1,6 +1,7 @@
 name: Kedro-Viz
 
 on:
+  pull_request:
   push:
     branches:
       - main
@@ -27,3 +28,4 @@ jobs:
         with:
           python_manager: uv
           telemetry_consent: true
+          auto_deploy: ${{ github.event_name != 'pull_request' }}
