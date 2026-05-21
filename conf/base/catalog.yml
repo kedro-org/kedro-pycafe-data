@@ -14,6 +14,19 @@ heap_any_command_run:
     backend: snowflake
   credentials: heap_snowflake_credentials
 
+pypi_plugin_downloads:
+  type: kedro_datasets.snowflake.SnowparkTableDataset
+  table_name: "V_PYPI_PLUGIN_DOWNLOADS"
+  database: "KEDRO_BI_DB"
+  schema: "PYPI"
+  credentials: snowflake_credentials
+
+pypi_plugin_downloads_table:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/pypi_plugin_downloads.csv
+  save_args:
+    index: False
+
 new_kedro_users_monthly:
   type: kedro_pycafe_data.datasets.ibis.FileDataset
   filepath: data/02_intermediate/new_kedro_users_monthly.csv
