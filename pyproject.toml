@@ -3,11 +3,11 @@ requires = [ "setuptools",]
 build-backend = "setuptools.build_meta"
 
 [project]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 name = "kedro_pycafe_data"
 readme = "README.md"
 dynamic = [ "version",]
-dependencies = [ "ipython>=8.10", "jupyterlab>=4.5.7", "notebook", "kedro~=1.0.0", "kedro-datasets[ibis-snowflake]",]
+dependencies = [ "ipython>=8.10", "jupyterlab>=4.5.7", "notebook", "kedro~=1.0.0", "kedro-datasets[ibis-snowflake]>=9.4.0",]
 
 [dependency-groups]
 dev = [
