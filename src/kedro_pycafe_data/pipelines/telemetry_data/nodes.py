@@ -6,15 +6,16 @@ def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
     """Aggregate raw events to one row per (username, day) since 2024-09-01."""
     heap_stats = heap_stats.rename(str.lower)
     return (
-        heap_stats
-        .filter([
-            heap_stats.time.date() >= ibis.date("2024-09-01"),
-            heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
-            # Keep only real release versions (e.g. 0.19, 1.2.6); drops "test", "dev", "main"
-            heap_stats.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
-            # 0.20 was never released (0.19 → 1.0); it only comes from pre-release/test installs
-            ~heap_stats.project_version.startswith("0.20"),
-        ])
+        heap_stats.filter(
+            [
+                heap_stats.time.date() >= ibis.date("2024-09-01"),
+                heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
+                # Keep only real release versions (e.g. 0.19, 1.2.6); drops "test", "dev", "main"
+                heap_stats.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
+                # 0.20 was never released (0.19 → 1.0); it only comes from pre-release/test installs
+                ~heap_stats.project_version.startswith("0.20"),
+            ]
+        )
         .group_by(["username", heap_stats.time.date().name("dt")])
         .agg(max_version_prefix=heap_stats.project_version.left(4).max())
     )
@@ -25,11 +26,9 @@ def get_unique_users(dt_username: ir.Table) -> ir.Table:
     min_max = dt_username.group_by("username").agg(
         min_dt=dt_username.dt.min(), max_dt=dt_username.dt.max()
     )
-    return (
-        min_max
-        .filter(min_max.max_dt > min_max.min_dt + ibis.interval(days=8))
-        .select("username")
-    )
+    return min_max.filter(
+        min_max.max_dt > min_max.min_dt + ibis.interval(days=8)
+    ).select("username")
 
 
 def get_active_events(dt_username: ir.Table, unique_users: ir.Table) -> ir.Table:
@@ -39,16 +38,12 @@ def get_active_events(dt_username: ir.Table, unique_users: ir.Table) -> ir.Table
 
 def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
     """Count new Kedro users per month (first seen since 2024-11)."""
-    first_dates = (
-        active_events.group_by("username")
-        .agg(
-            first_date=ibis._.dt.min(),
-            max_version_prefix=ibis._.max_version_prefix.min(),
-        )
+    first_dates = active_events.group_by("username").agg(
+        first_date=ibis._.dt.min(),
+        max_version_prefix=ibis._.max_version_prefix.min(),
     )
     return (
-        first_dates
-        .mutate(first_year_month=ibis._.first_date.strftime("%Y-%m"))
+        first_dates.mutate(first_year_month=ibis._.first_date.strftime("%Y-%m"))
         .filter(ibis._.first_year_month >= "2024-11")
         .group_by(["first_year_month", "max_version_prefix"])
         .agg(count=ibis._.count())
@@ -59,8 +54,7 @@ def build_new_users_monthly(active_events: ir.Table) -> ir.Table:
 def build_mau(active_events: ir.Table) -> ir.Table:
     """Count monthly active unique users by version since 2024-10."""
     return (
-        active_events
-        .filter(ibis._.dt >= ibis.date("2024-10-01"))
+        active_events.filter(ibis._.dt >= ibis.date("2024-10-01"))
         .mutate(year_month=ibis._.dt.truncate("M").strftime("%Y-%m"))
         .group_by(["year_month", "max_version_prefix"])
         .agg(mau=ibis._.username.nunique())
@@ -79,26 +73,22 @@ def build_cohort_retention(
         .mutate(cohort_month=lambda t: t.first_date.truncate("M"))
     )
 
-    cutoff_month = (
-        ibis.now().date().truncate("M")
-        - ibis.interval(months=cohort_trailing_hide_months)
+    cutoff_month = ibis.now().date().truncate("M") - ibis.interval(
+        months=cohort_trailing_hide_months
     )
 
-    cohort = (
-        first_dates
-        .filter([
+    cohort = first_dates.filter(
+        [
             # Earliest cohort with full Heap telemetry coverage.
             first_dates.cohort_month.strftime("%Y-%m") >= "2024-11",
             first_dates.cohort_month <= cutoff_month,
-        ])
-        .select("username", "cohort_month")
-    )
+        ]
+    ).select("username", "cohort_month")
 
     # Rename to disambiguate after left join: active_username is NULL for non-active rows,
     # which makes COUNT(DISTINCT active_username) naturally give 0 for those cells.
     activity = (
-        active_events
-        .select("username", active_month=active_events.dt.truncate("M"))
+        active_events.select("username", active_month=active_events.dt.truncate("M"))
         .distinct()
         .rename(active_username="username")
     )
@@ -110,8 +100,7 @@ def build_cohort_retention(
     # on Snowflake, producing one row per offset 0–12 per cohort month.
     today = ibis.now().date()
     offsets = (
-        sizes
-        .mutate(month_offset=ibis.range(0, 13))
+        sizes.mutate(month_offset=ibis.range(0, 13))
         .unnest("month_offset")
         .filter(
             lambda t: (
@@ -125,14 +114,12 @@ def build_cohort_retention(
     # Expand grid to per-user rows, then left-join activity at the target month.
     # Month difference via year/month components mirrors DATEDIFF('month', ...).
     expanded = offsets.join(cohort, "cohort_month")
-    month_diff = (
-        (activity.active_month.year() - expanded.cohort_month.year()) * 12
-        + (activity.active_month.month() - expanded.cohort_month.month())
+    month_diff = (activity.active_month.year() - expanded.cohort_month.year()) * 12 + (
+        activity.active_month.month() - expanded.cohort_month.month()
     )
 
     return (
-        expanded
-        .left_join(
+        expanded.left_join(
             activity,
             (expanded.username == activity.active_username)
             & (month_diff == expanded.month_offset),
@@ -160,14 +147,12 @@ def build_command_mau(
     any_command_run = any_command_run.rename(str.lower)
     words = any_command_run.command.split(" ")
     base = (
-        any_command_run
-        .join(unique_users, "username")[any_command_run.columns]
+        any_command_run.join(unique_users, "username")[any_command_run.columns]
         .filter(ibis._.time >= ibis.timestamp("2024-10-01"))
         .mutate(first_two_words=words[0].concat(" ").concat(words[1]))
     )
     return (
-        base
-        .filter(ibis._.first_two_words.isin(keep_prefixes))
+        base.filter(ibis._.first_two_words.isin(keep_prefixes))
         .mutate(year_month=ibis._.time.truncate("M").strftime("%Y-%m"))
         .group_by(["year_month", "first_two_words"])
         .agg(unique_users=ibis._.username.nunique())

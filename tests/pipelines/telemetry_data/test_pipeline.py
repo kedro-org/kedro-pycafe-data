@@ -76,13 +76,22 @@ def test_telemetry_pipeline(catalog, caplog):
     # user_short excluded: only 4-day activity span, does not meet the >8-day unique-user filter
     mau = catalog.load("mau_kedro").execute()
     assert set(mau.columns) == {"year_month", "max_version_prefix", "mau"}
-    assert set(mau["year_month"].tolist()) == {"2024-10", "2024-11", "2024-12", "2025-01"}
+    assert set(mau["year_month"].tolist()) == {
+        "2024-10",
+        "2024-11",
+        "2024-12",
+        "2025-01",
+    }
     # user_test_020 (only 0.20.0, active 2025-02) is dropped: 0.20 was never released.
     # Its month would otherwise appear above and its prefix here.
     assert "0.20" not in mau["max_version_prefix"].tolist()
 
     commands_mau = catalog.load("kedro_commands_mau").execute()
-    assert set(commands_mau.columns) == {"year_month", "first_two_words", "unique_users"}
+    assert set(commands_mau.columns) == {
+        "year_month",
+        "first_two_words",
+        "unique_users",
+    }
     assert "kedro run" in commands_mau["first_two_words"].tolist()
     assert "kedro pipeline" in commands_mau["first_two_words"].tolist()
 
@@ -93,7 +102,11 @@ def test_telemetry_pipeline(catalog, caplog):
     # Cohort filter: cohort_month >= 2024-11; user_a cohort (2024-09) excluded
     retention = catalog.load("cohort_retention").execute()
     assert set(retention.columns) == {
-        "cohort_month", "month_offset", "active_users", "cohort_size", "retention_pct"
+        "cohort_month",
+        "month_offset",
+        "active_users",
+        "cohort_size",
+        "retention_pct",
     }
     assert set(retention["cohort_month"].tolist()) == {"2024-11", "2024-12"}
     # Offset 0 is always 100% retention (cohort_size users active in their first month)
