@@ -1,23 +1,56 @@
 [build-system]
-requires = [ "setuptools",]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+]
 
 [project]
-requires-python = ">=3.10"
-name = "kedro_pycafe_data"
+name = "kedro-pycafe-data"
 readme = "README.md"
-dynamic = [ "version",]
-dependencies = [ "ipython>=8.10", "jupyterlab>=4.5.7", "notebook", "kedro~=1.0.0", "kedro-datasets[ibis-snowflake]>=9.4.0",]
+requires-python = ">=3.10"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = [
+  "version",
+]
+dependencies = [
+  "ipython>=8.10",
+  "jupyterlab>=4.5.7",
+  "kedro~=1.0.0",
+  "kedro-datasets[ibis-snowflake]>=9.4",
+  "notebook",
+]
+
+[project.scripts]
+kedro-pycafe-data = "kedro_pycafe_data.__main__:main"
 
 [dependency-groups]
 dev = [
   "kedro-datasets[ibis-duckdb]",
   "kedro-viz",
+  "pyproject-fmt>=2.22",
   "pytest",
 ]
 
-[project.scripts]
-kedro-pycafe-data = "kedro_pycafe_data.__main__:main"
+[tool.setuptools]
+[tool.setuptools.dynamic]
+version.attr = "kedro_pycafe_data.__version__"
+
+[tool.setuptools.packages]
+find.where = [
+  "src",
+]
+find.namespaces = false
+
+[tool.pyproject-fmt]
+table_format = "long"
+sub_table_spacing = "\n"
 
 [tool.kedro]
 package_name = "kedro_pycafe_data"
@@ -26,15 +59,6 @@ kedro_init_version = "1.0.0"
 tools = "['None']"
 example_pipeline = "False"
 source_dir = "src"
-
-[project.entry-points."kedro.hooks"]
-
-[tool.setuptools.dynamic.version]
-attr = "kedro_pycafe_data.__version__"
-
-[tool.setuptools.packages.find]
-where = [ "src",]
-namespaces = false
 
 [tool.kedro_telemetry]
 project_id = "f57885ae934d4103b36d897ad8cfa9c0"
