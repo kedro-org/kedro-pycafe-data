@@ -36,6 +36,7 @@ dev = [
   "kedro-viz",
   "pyproject-fmt>=2.22",
   "pytest",
+  "ruff",
 ]
 
 [tool.setuptools]
@@ -47,6 +48,11 @@ find.where = [
   "src",
 ]
 find.namespaces = false
+
+[tool.ruff]
+src = [ "src" ]
+[tool.ruff.lint]
+preview = true
 
 [tool.pyproject-fmt]
 table_format = "long"
