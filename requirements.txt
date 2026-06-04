@@ -1,7 +1,5 @@
 ipython>=8.10
-jupyterlab>=3.0
+jupyterlab>=4.5.7
 notebook
 kedro~=1.0.0
-kedro-datasets[snowflake]
-pandas
-pyarrow
+kedro-datasets[ibis-snowflake]
