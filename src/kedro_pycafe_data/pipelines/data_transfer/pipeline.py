@@ -19,7 +19,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="fetch_and_save_downloads_by_country",
             ),
             Node(
-                func=fetch_and_save,
+                identity,
                 inputs="pypi_plugin_downloads",
                 outputs="pypi_plugin_downloads_table",
                 name="fetch_and_save_plugin_downloads",
