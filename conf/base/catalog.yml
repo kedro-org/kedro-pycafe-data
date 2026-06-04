@@ -23,7 +23,7 @@ pypi_plugin_downloads:
   credentials: snowflake_credentials
 
 pypi_plugin_downloads_table:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/pypi_plugin_downloads.csv
   file_format: csv
   connection:
@@ -31,7 +31,7 @@ pypi_plugin_downloads_table:
   credentials: snowflake_credentials
 
 new_kedro_users_monthly:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/new_kedro_users_monthly.csv
   file_format: csv
   connection:
@@ -39,7 +39,7 @@ new_kedro_users_monthly:
   credentials: heap_snowflake_credentials
 
 mau_kedro:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/mau_kedro.csv
   file_format: csv
   connection:
@@ -47,7 +47,7 @@ mau_kedro:
   credentials: heap_snowflake_credentials
 
 kedro_plugins_mau:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/kedro_plugins_mau.csv
   file_format: csv
   connection:
@@ -55,7 +55,7 @@ kedro_plugins_mau:
   credentials: heap_snowflake_credentials
 
 kedro_commands_mau:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/kedro_commands_mau.csv
   file_format: csv
   connection:
@@ -71,7 +71,7 @@ pypi_kedro_downloads:
   credentials: snowflake_credentials
 
 pypi_kedro_downloads_table:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/pypi_kedro_downloads.csv
   file_format: csv
   connection:
@@ -79,7 +79,7 @@ pypi_kedro_downloads_table:
   credentials: snowflake_credentials
 
 cohort_retention:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/cohort_retention.csv
   file_format: csv
   connection:
@@ -95,7 +95,7 @@ downloads_by_country:
   credentials: snowflake_credentials
 
 downloads_by_country_table:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/downloads_by_country.csv
   file_format: csv
   connection:
