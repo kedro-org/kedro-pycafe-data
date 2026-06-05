@@ -77,6 +77,9 @@ def test_telemetry_pipeline(catalog, caplog):
     mau = catalog.load("mau_kedro").execute()
     assert set(mau.columns) == {"year_month", "max_version_prefix", "mau"}
     assert set(mau["year_month"].tolist()) == {"2024-10", "2024-11", "2024-12", "2025-01"}
+    # user_test_020 (only 0.20.0, active 2025-02) is dropped: 0.20 was never released.
+    # Its month would otherwise appear above and its prefix here.
+    assert "0.20" not in mau["max_version_prefix"].tolist()
 
     commands_mau = catalog.load("kedro_commands_mau").execute()
     assert set(commands_mau.columns) == {"year_month", "first_two_words", "unique_users"}

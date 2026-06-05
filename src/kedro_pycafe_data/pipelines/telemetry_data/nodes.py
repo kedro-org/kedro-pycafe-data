@@ -12,6 +12,8 @@ def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
             heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
             # Keep only real release versions (e.g. 0.19, 1.2.6); drops "test", "dev", "main"
             heap_stats.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
+            # 0.20 was never released (0.19 → 1.0); it only comes from pre-release/test installs
+            ~heap_stats.project_version.startswith("0.20"),
         ])
         .group_by(["username", heap_stats.time.date().name("dt")])
         .agg(max_version_prefix=heap_stats.project_version.left(4).max())
