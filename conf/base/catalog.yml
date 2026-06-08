@@ -23,7 +23,7 @@ pypi_plugin_downloads:
   credentials: snowflake_credentials
 
 pypi_plugin_downloads_table:
-  type: kedro_pycafe_data.datasets.ibis.FileDataset
+  type: ibis.FileDataset
   filepath: data/02_intermediate/pypi_plugin_downloads.csv
   file_format: csv
   connection:
