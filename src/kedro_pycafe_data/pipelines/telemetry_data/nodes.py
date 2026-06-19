@@ -212,7 +212,10 @@ def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
             (package == "langfuse", "Langfuse (LLM observability)"),
             (package == "opik", "Opik (LLM observability)"),
             ((package == "langchain") & is_experimental, "LangChain prompt"),
-            ((package == "langchain") & ~is_experimental, "LangChain (chat / embeddings)"),
+            (
+                (package == "langchain") & ~is_experimental,
+                "LangChain (chat / embeddings)",
+            ),
             else_=package,  # other experimental datasets show their package name
         ),
         dataset_class=ds.replace("dataset_type_count_", ""),
@@ -264,7 +267,9 @@ def build_experimental_dataset_usage(
         .select(summary_cols)
     )
 
-    def _rollup(subset: ir.Table, label: str, ns: str, is_genai: bool | None) -> ir.Table:
+    def _rollup(
+        subset: ir.Table, label: str, ns: str, is_genai: bool | None
+    ) -> ir.Table:
         # Distinct counts can't be re-summed downstream, so group totals are
         # pre-computed here (one project run = one username + time).
         event = subset.username + "|" + subset.time.cast("string")

@@ -138,7 +138,9 @@ def test_telemetry_pipeline(catalog, caplog):
     assert chat["is_genai"] and chat["namespace"] == "core"
     assert int(chat["unique_users"]) == 1 and int(chat["total_catalog_entries"]) == 3
 
-    langfuse = usage.loc["kedro_datasets_experimental_langfuse_trace_dataset_tracedataset"]
+    langfuse = usage.loc[
+        "kedro_datasets_experimental_langfuse_trace_dataset_tracedataset"
+    ]
     assert langfuse["is_genai"] and langfuse["namespace"] == "experimental"
 
     mlrun = usage.loc["kedro_datasets_experimental_mlrun_model_mlrunmodel"]
