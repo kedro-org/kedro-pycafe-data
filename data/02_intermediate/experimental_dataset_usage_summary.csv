@@ -1,9 +1,9 @@
 namespace,is_genai,tool,dataset_class,unique_users,project_runs,total_catalog_entries,first_seen,last_seen
-genai,true,ALL GenAI datasets,ALL GenAI datasets,4,74,300,2026-05-29,2026-06-15
-experimental,,ALL experimental datasets,ALL experimental datasets,5,82,274,2026-05-29,2026-06-15
+genai,true,ALL GenAI datasets,ALL GenAI datasets,4,74,312,2026-05-29,2026-06-15
+experimental,,ALL experimental datasets,ALL experimental datasets,5,82,286,2026-05-29,2026-06-15
 experimental,true,LangChain prompt,kedro_datasets_experimental_langchain_prompt_dataset_promptdataset,4,74,106,2026-05-29,2026-06-15
 core,true,LangChain (chat / embeddings),kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset,3,30,44,2026-06-03,2026-06-15
-experimental,true,ChromaDB (vector store),kedro_datasets_experimental_chromadb_chromadb_dataset_chromadbdataset,2,30,18,2026-05-29,2026-06-11
+experimental,true,ChromaDB (vector store),kedro_datasets_experimental_chromadb_chromadb_dataset_chromadbdataset,2,30,30,2026-05-29,2026-06-11
 experimental,true,Opik (LLM observability),kedro_datasets_experimental_opik_trace_dataset_tracedataset,3,17,34,2026-06-03,2026-06-15
 experimental,true,Opik (LLM observability),kedro_datasets_experimental_opik_prompt_dataset_promptdataset,3,17,17,2026-06-03,2026-06-15
 experimental,true,Langfuse (LLM observability),kedro_datasets_experimental_langfuse_trace_dataset_tracedataset,3,14,40,2026-06-03,2026-06-11
