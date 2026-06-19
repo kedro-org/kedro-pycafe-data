@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from kedro.io import DataCatalog
 from kedro.runner import SequentialRunner
@@ -47,6 +48,10 @@ def catalog():
                 "username": "VARCHAR",
                 "is_ci_env": "VARCHAR",
                 "project_version": "VARCHAR",
+                # Heap stores dataset-count properties as TEXT.
+                "dataset_type_count_kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset": "VARCHAR",
+                "dataset_type_count_kedro_datasets_experimental_langfuse_trace_dataset_tracedataset": "VARCHAR",
+                "dataset_type_count_kedro_datasets_experimental_mlrun_model_mlrunmodel": "VARCHAR",
             }
         },
     )
@@ -57,6 +62,7 @@ def catalog():
     catalog["params:plugins"] = PLUGINS
     catalog["params:commands"] = COMMANDS
     catalog["params:cohort_trailing_hide_months"] = 2
+    catalog["params:genai_min_users"] = 1
     return catalog
 
 
@@ -111,3 +117,70 @@ def test_telemetry_pipeline(catalog, caplog):
     assert set(retention["cohort_month"].tolist()) == {"2024-11", "2024-12"}
     # Offset 0 is always 100% retention (cohort_size users active in their first month)
     assert (retention[retention["month_offset"] == 0]["retention_pct"] == 100.0).all()
+
+    # GenAI / experimental dataset usage. user_ci (is_ci_env=true, ChatOpenAI=5)
+    # is excluded by the CI filter, so only user_b's ChatOpenAI runs count.
+    usage = catalog.load("experimental_dataset_usage_summary").execute()
+    assert set(usage.columns) == {
+        "namespace",
+        "is_genai",
+        "tool",
+        "dataset_class",
+        "unique_users",
+        "project_runs",
+        "total_catalog_entries",
+        "first_seen",
+        "last_seen",
+    }
+    usage = usage.set_index("dataset_class")
+
+    chat = usage.loc["kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset"]
+    assert chat["is_genai"] and chat["namespace"] == "core"
+    assert int(chat["unique_users"]) == 1 and int(chat["total_catalog_entries"]) == 3
+
+    langfuse = usage.loc["kedro_datasets_experimental_langfuse_trace_dataset_tracedataset"]
+    assert langfuse["is_genai"] and langfuse["namespace"] == "experimental"
+
+    mlrun = usage.loc["kedro_datasets_experimental_mlrun_model_mlrunmodel"]
+    assert not mlrun["is_genai"] and mlrun["namespace"] == "experimental"
+
+    # Roll-ups are de-duplicated across datasets (user_b, user_c over 3 distinct runs).
+    genai_all = usage.loc["ALL GenAI datasets"]
+    assert int(genai_all["unique_users"]) == 2 and int(genai_all["project_runs"]) == 3
+    # The all-experimental total mixes GenAI and non-GenAI, so is_genai must be NULL.
+    assert int(usage.loc["ALL experimental datasets", "unique_users"]) == 2
+    assert pd.isna(usage.loc["ALL experimental datasets", "is_genai"])
+
+    monthly = catalog.load("experimental_dataset_usage_monthly").execute()
+    assert set(monthly.columns) == {
+        "month",
+        "namespace",
+        "is_genai",
+        "tool",
+        "dataset_class",
+        "unique_users",
+        "project_runs",
+        "total_catalog_entries",
+    }
+    monthly["month_str"] = pd.to_datetime(monthly["month"]).dt.strftime("%Y-%m-%d")
+
+    # ChatOpenAI only appears in 2024-11, and only user_b's 2 runs survive the CI
+    # filter (user_ci's count of 5 is dropped) -> guards month grouping + CI filter.
+    chat = monthly[
+        monthly["dataset_class"]
+        == "kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset"
+    ]
+    assert len(chat) == 1
+    assert chat.iloc[0]["month_str"] == "2024-11-01"
+    assert int(chat.iloc[0]["unique_users"]) == 1
+    assert int(chat.iloc[0]["project_runs"]) == 2
+    assert int(chat.iloc[0]["total_catalog_entries"]) == 3
+
+    # Langfuse trace spans two months -> guards month truncation into distinct rows.
+    langfuse_months = set(
+        monthly[
+            monthly["dataset_class"]
+            == "kedro_datasets_experimental_langfuse_trace_dataset_tracedataset"
+        ]["month_str"]
+    )
+    assert langfuse_months == {"2024-11-01", "2024-12-01"}

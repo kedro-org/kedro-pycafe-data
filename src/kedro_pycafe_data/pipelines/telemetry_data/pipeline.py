@@ -4,6 +4,7 @@ from .nodes import (
     aggregate_project_stats,
     build_cohort_retention,
     build_command_mau,
+    build_experimental_dataset_usage,
     build_mau,
     build_new_users_monthly,
     get_active_events,
@@ -61,6 +62,15 @@ def create_pipeline(**kwargs) -> Pipeline:
                 inputs=["active_events", "params:cohort_trailing_hide_months"],
                 outputs="cohort_retention",
                 name="build_cohort_retention",
+            ),
+            Node(
+                build_experimental_dataset_usage,
+                inputs=["heap_project_statistics", "params:genai_min_users"],
+                outputs=[
+                    "experimental_dataset_usage_monthly",
+                    "experimental_dataset_usage_summary",
+                ],
+                name="build_experimental_dataset_usage",
             ),
         ]
     )

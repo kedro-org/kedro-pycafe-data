@@ -86,6 +86,22 @@ cohort_retention:
     backend: snowflake
   credentials: heap_snowflake_credentials
 
+experimental_dataset_usage_monthly:
+  type: ibis.FileDataset
+  filepath: data/02_intermediate/experimental_dataset_usage_monthly.csv
+  file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
+
+experimental_dataset_usage_summary:
+  type: ibis.FileDataset
+  filepath: data/02_intermediate/experimental_dataset_usage_summary.csv
+  file_format: csv
+  connection:
+    backend: snowflake
+  credentials: heap_snowflake_credentials
+
 downloads_by_country:
   type: ibis.TableDataset
   table_name: V_DOWNLOADS_BY_COUNTRY
