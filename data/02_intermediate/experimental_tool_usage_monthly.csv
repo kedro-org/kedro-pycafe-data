@@ -1,0 +1,10 @@
+month,namespace,is_genai,tool,unique_users,project_runs,total_catalog_entries
+2026-05-01,experimental,true,LangChain prompt,1,12,18
+2026-05-01,experimental,true,ChromaDB (vector store),1,12,12
+2026-06-01,core,true,LangChain (chat / embeddings),3,30,44
+2026-06-01,experimental,true,LangChain prompt,4,62,88
+2026-06-01,experimental,true,ChromaDB (vector store),2,18,18
+2026-06-01,experimental,true,Langfuse (LLM observability),3,14,81
+2026-06-01,experimental,true,Opik (LLM observability),3,17,51
+2026-06-01,experimental,false,mlrun,3,4,12
+2026-06-01,experimental,false,darts,1,6,6
