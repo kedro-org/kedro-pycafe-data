@@ -175,7 +175,14 @@ def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
     """Unpivot the wide ``dataset_type_count_*`` columns to one labelled row per
     (event, dataset class), keeping only core-langchain and experimental datasets."""
     t = heap_project_statistics.rename(str.lower)
-    t = t.filter(t.is_ci_env.isnull() | (t.is_ci_env == "false"))
+    t = t.filter(
+        t.is_ci_env.isnull() | (t.is_ci_env == "false"),
+        # Real release versions only - drops "dev"/"main"/test installs and the
+        # never-released 0.20, matching aggregate_project_stats() so these numbers
+        # line up with the MAU/cohort metrics.
+        t.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
+        ~t.project_version.startswith("0.20"),
+    )
 
     count_cols = [c for c in t.columns if c.startswith(_DATASET_COUNT_PREFIXES)]
     if not count_cols:
@@ -204,6 +211,7 @@ def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
         ds.re_extract(r"kedro_datasets_experimental_([a-z0-9]+)", 1), "langchain"
     )
     return long.mutate(
+        event=long.username + "|" + long.time.cast("string"),
         month=long.time.truncate("M").cast("date"),
         namespace=is_experimental.ifelse("experimental", "core"),
         is_genai=~is_experimental | package.isin(_GENAI_PACKAGES),
@@ -225,12 +233,17 @@ def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
 def build_experimental_dataset_usage(
     heap_project_statistics: ir.Table,
     genai_min_users: int,
-) -> tuple[ir.Table, ir.Table]:
-    """Monthly and all-time usage of GenAI/experimental datasets.
+) -> tuple[ir.Table, ir.Table, ir.Table]:
+    """Usage of GenAI/experimental datasets, at per-dataset and per-tool grains.
+
+    Returns ``(per-dataset monthly, per-dataset summary, per-tool summary)``. The
+    per-tool summary collapses a tool's datasets (e.g. Langfuse Prompt/Trace/
+    Evaluation) into one row with *de-duplicated* distinct users - the figure the
+    dashboard's left chart shows.
 
     The dashboard filters ``is_genai`` (GenAI page) or ``namespace == 'experimental'``
-    (all-experimental page). Per-dataset rows below ``genai_min_users`` distinct users
-    are suppressed (k-anonymity); the ALL-* roll-up rows are exempt.
+    (all-experimental page). Rows below ``genai_min_users`` distinct users are
+    suppressed (k-anonymity); the per-dataset ALL-* roll-up rows are exempt.
     """
     long = _genai_experimental_long(heap_project_statistics)
     group_keys = ["namespace", "is_genai", "tool", "dataset_class"]
@@ -271,12 +284,11 @@ def build_experimental_dataset_usage(
         subset: ir.Table, label: str, ns: str, is_genai: bool | None
     ) -> ir.Table:
         # Distinct counts can't be re-summed downstream, so group totals are
-        # pre-computed here (one project run = one username + time).
-        event = subset.username + "|" + subset.time.cast("string")
+        # pre-computed here (one project run = one username + time = one event).
         return (
             subset.agg(
                 unique_users=subset.username.nunique(),
-                project_runs=event.nunique(),
+                project_runs=subset.event.nunique(),
                 total_catalog_entries=subset.ds_count.sum(),
                 first_seen=subset.time.min().cast("date"),
                 last_seen=subset.time.max().cast("date"),
@@ -310,4 +322,21 @@ def build_experimental_dataset_usage(
         .order_by([ibis.desc("is_genai"), ibis.desc("unique_users")])
     )
 
-    return monthly, summary
+    # Per-tool grain: a tool's datasets collapse into one
+    # row with de-duplicated distinct users / runs; total_catalog_entries stays
+    # additive. (Per-tool *monthly* isn't needed - the monthly chart shows the
+    # additive catalog-entries metric, which the dashboard sums from `monthly`.)
+    tool_summary = (
+        long.group_by(["namespace", "is_genai", "tool"])
+        .agg(
+            unique_users=ibis._.username.nunique(),
+            project_runs=ibis._.event.nunique(),
+            total_catalog_entries=ibis._.ds_count.sum(),
+            first_seen=ibis._.time.min().cast("date"),
+            last_seen=ibis._.time.max().cast("date"),
+        )
+        .filter(ibis._.unique_users >= genai_min_users)
+        .order_by([ibis.desc("is_genai"), ibis.desc("unique_users")])
+    )
+
+    return monthly, summary, tool_summary

@@ -69,6 +69,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 outputs=[
                     "experimental_dataset_usage_monthly",
                     "experimental_dataset_usage_summary",
+                    "experimental_tool_usage_summary",
                 ],
                 name="build_experimental_dataset_usage",
             ),

@@ -51,6 +51,7 @@ def catalog():
                 # Heap stores dataset-count properties as TEXT.
                 "dataset_type_count_kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset": "VARCHAR",
                 "dataset_type_count_kedro_datasets_experimental_langfuse_trace_dataset_tracedataset": "VARCHAR",
+                "dataset_type_count_kedro_datasets_experimental_langfuse_prompt_dataset_promptdataset": "VARCHAR",
                 "dataset_type_count_kedro_datasets_experimental_mlrun_model_mlrunmodel": "VARCHAR",
             }
         },
@@ -119,7 +120,8 @@ def test_telemetry_pipeline(catalog, caplog):
     assert (retention[retention["month_offset"] == 0]["retention_pct"] == 100.0).all()
 
     # GenAI / experimental dataset usage. user_ci (is_ci_env=true, ChatOpenAI=5)
-    # is excluded by the CI filter, so only user_b's ChatOpenAI runs count.
+    # is dropped by the CI filter and user_dev2 (dev-branch, ChatOpenAI=9) by the
+    # release-version filter, so only user_b's ChatOpenAI runs count.
     usage = catalog.load("experimental_dataset_usage_summary").execute()
     assert set(usage.columns) == {
         "namespace",
@@ -186,3 +188,22 @@ def test_telemetry_pipeline(catalog, caplog):
         ]["month_str"]
     )
     assert langfuse_months == {"2024-11-01", "2024-12-01"}
+
+    # Per-tool grain (Option B): Langfuse Trace + Prompt collapse into one tool row
+    # with DE-DUPLICATED users/runs -> 2 users / 2 runs (not 4), entries summed (7).
+    tool_summary = catalog.load("experimental_tool_usage_summary").execute()
+    assert set(tool_summary.columns) == {
+        "namespace",
+        "is_genai",
+        "tool",
+        "unique_users",
+        "project_runs",
+        "total_catalog_entries",
+        "first_seen",
+        "last_seen",
+    }
+    tool_summary = tool_summary.set_index("tool")
+    langfuse_tool = tool_summary.loc["Langfuse (LLM observability)"]
+    assert int(langfuse_tool["unique_users"]) == 2
+    assert int(langfuse_tool["project_runs"]) == 2
+    assert int(langfuse_tool["total_catalog_entries"]) == 7

@@ -38,6 +38,7 @@ Processes Heap telemetry events from `HEAP_FRAMEWORK_VIZ_PRODUCTION.HEAP` in Sno
 | `cohort_retention.csv` | Monthly cohort retention matrix (long format): for each cohort month, how many qualified users were still active 0-12 months later, plus pre-computed `retention_pct`. Latest 2 cohorts suppressed while their `cohort_size` is still settling. |
 | `experimental_dataset_usage_monthly.csv` | Monthly adoption of GenAI/experimental datasets (long format), one row per month × dataset class with `unique_users`, `project_runs` and `total_catalog_entries`. Sourced from the telemetry `dataset_type_count.*` properties (requires `kedro-telemetry` >= 0.8). Labelled with `namespace` (core/experimental), `is_genai` and a friendly `tool` group so a dashboard can filter the GenAI subset vs. all experimental datasets. Columns are picked by namespace prefix, so new datasets appear automatically. |
 | `experimental_dataset_usage_summary.csv` | All-time per-dataset rollup of the above (distinct `unique_users`, `first_seen`/`last_seen`), plus pre-computed de-duplicated `ALL GenAI datasets` and `ALL experimental datasets` total rows. Per-dataset rows below `genai_min_users` distinct users are suppressed (k-anonymity). |
+| `experimental_tool_usage_summary.csv` | All-time per-**tool** rollup (e.g. Langfuse's Prompt/Trace/Evaluation collapsed into one `Langfuse` row) with **de-duplicated** `unique_users`/`project_runs` and `first_seen`/`last_seen`. Powers the dashboard's "distinct users by tool" chart. |
 
 ## Prerequisites
 
