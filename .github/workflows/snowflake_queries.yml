@@ -58,6 +58,10 @@ jobs:
           git add -f data/02_intermediate/kedro_commands_mau.csv || true
           git add -f data/02_intermediate/cohort_retention.csv || true
 
+          git add -f data/02_intermediate/experimental_dataset_usage_monthly.csv || true
+          git add -f data/02_intermediate/experimental_dataset_usage_summary.csv || true
+          git add -f data/02_intermediate/experimental_tool_usage_summary.csv || true
+
           git commit -m "Update pipeline outputs [skip ci]" || echo "No changes to commit"
 
           # Push with built-in GITHUB_TOKEN
