@@ -1,0 +1,8 @@
+"namespace","is_genai","tool","unique_users","project_runs","total_catalog_entries","first_seen","last_seen"
+"core",true,"LangChain (chat / embeddings)",10,138,259,2026-06-03,2026-07-01
+"experimental",true,"LangChain prompt",6,133,292,2026-05-29,2026-07-02
+"experimental",true,"Langfuse (LLM observability)",4,27,159,2026-06-03,2026-07-01
+"experimental",true,"Opik (LLM observability)",3,29,123,2026-06-03,2026-06-30
+"experimental",true,"ChromaDB (vector store)",2,45,45,2026-05-29,2026-06-19
+"experimental",false,"mlrun",3,4,16,2026-06-15,2026-06-16
+"experimental",false,"netcdf",1,46,92,2026-06-18,2026-06-25
