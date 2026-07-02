@@ -12,21 +12,25 @@ _DATASET_COUNT_PREFIXES = (
 # Experimental sub-packages that are GenAI/LLM-related; the rest is MLOps/data-format.
 _GENAI_PACKAGES = ["chromadb", "langchain", "langfuse", "opik"]
 
+# Real release versions only (e.g. 0.19, 1.2.6); excludes "test", "dev", "main".
+_RELEASE_VERSION_RE = r"^[0-9]+[.][0-9].*$"
+
+
+def _real_release_events(t: ir.Table) -> ir.Table:
+    """Keep only real user events on a released version: not CI, a real release,
+    and not the never-released 0.20 (which only comes from pre-release installs)."""
+    return t.filter(
+        t.is_ci_env.isnull() | (t.is_ci_env == "false"),
+        t.project_version.rlike(_RELEASE_VERSION_RE),
+        ~t.project_version.startswith("0.20"),
+    )
+
 
 def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
     """Aggregate raw events to one row per (username, day) since 2024-09-01."""
-    heap_stats = heap_stats.rename(str.lower)
+    heap_stats = _real_release_events(heap_stats.rename(str.lower))
     return (
-        heap_stats.filter(
-            [
-                heap_stats.time.date() >= ibis.date("2024-09-01"),
-                heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
-                # Keep only real release versions (e.g. 0.19, 1.2.6); drops "test", "dev", "main"
-                heap_stats.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
-                # 0.20 was never released (0.19 → 1.0); it only comes from pre-release/test installs
-                ~heap_stats.project_version.startswith("0.20"),
-            ]
-        )
+        heap_stats.filter(heap_stats.time.date() >= ibis.date("2024-09-01"))
         .group_by(["username", heap_stats.time.date().name("dt")])
         .agg(max_version_prefix=heap_stats.project_version.left(4).max())
     )
@@ -174,15 +178,8 @@ def build_command_mau(
 def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
     """Unpivot the wide ``dataset_type_count_*`` columns to one labelled row per
     (event, dataset class), keeping only core-langchain and experimental datasets."""
-    t = heap_project_statistics.rename(str.lower)
-    t = t.filter(
-        t.is_ci_env.isnull() | (t.is_ci_env == "false"),
-        # Real release versions only - drops "dev"/"main"/test installs and the
-        # never-released 0.20, matching aggregate_project_stats() so these numbers
-        # line up with the MAU/cohort metrics.
-        t.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
-        ~t.project_version.startswith("0.20"),
-    )
+    # Same real-release filter as the MAU/cohort metrics, so the numbers line up.
+    t = _real_release_events(heap_project_statistics.rename(str.lower))
 
     count_cols = [c for c in t.columns if c.startswith(_DATASET_COUNT_PREFIXES)]
     if not count_cols:
@@ -230,6 +227,24 @@ def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
     )
 
 
+def _usage_agg(grouped, *, dedup_runs: bool, with_dates: bool) -> ir.Table:
+    """Standard usage metrics for a grouped (or whole) GenAI/experimental table.
+
+    ``dedup_runs`` controls how ``project_runs`` is counted: the per-dataset grain
+    has exactly one row per event so ``count()`` is exact; the per-tool/roll-up
+    grains span several datasets per event and must de-duplicate (``event.nunique()``).
+    """
+    aggs = {
+        "unique_users": ibis._.username.nunique(),
+        "project_runs": ibis._.event.nunique() if dedup_runs else ibis._.count(),
+        "total_catalog_entries": ibis._.ds_count.sum(),
+    }
+    if with_dates:
+        aggs["first_seen"] = ibis._.time.min().cast("date")
+        aggs["last_seen"] = ibis._.time.max().cast("date")
+    return grouped.agg(**aggs)
+
+
 def build_experimental_dataset_usage(
     heap_project_statistics: ir.Table,
     genai_min_users: int,
@@ -249,11 +264,8 @@ def build_experimental_dataset_usage(
     group_keys = ["namespace", "is_genai", "tool", "dataset_class"]
 
     monthly = (
-        long.group_by(["month", *group_keys])
-        .agg(
-            unique_users=ibis._.username.nunique(),
-            project_runs=ibis._.count(),
-            total_catalog_entries=ibis._.ds_count.sum(),
+        _usage_agg(
+            long.group_by(["month", *group_keys]), dedup_runs=False, with_dates=False
         )
         .filter(ibis._.unique_users >= genai_min_users)
         .order_by(["month", "namespace", ibis.desc("unique_users")])
@@ -268,14 +280,7 @@ def build_experimental_dataset_usage(
         "last_seen",
     ]
     per_dataset = (
-        long.group_by(group_keys)
-        .agg(
-            unique_users=ibis._.username.nunique(),
-            project_runs=ibis._.count(),
-            total_catalog_entries=ibis._.ds_count.sum(),
-            first_seen=ibis._.time.min().cast("date"),
-            last_seen=ibis._.time.max().cast("date"),
-        )
+        _usage_agg(long.group_by(group_keys), dedup_runs=False, with_dates=True)
         .filter(ibis._.unique_users >= genai_min_users)
         .select(summary_cols)
     )
@@ -283,16 +288,10 @@ def build_experimental_dataset_usage(
     def _rollup(
         subset: ir.Table, label: str, ns: str, is_genai: bool | None
     ) -> ir.Table:
-        # Distinct counts can't be re-summed downstream, so group totals are
-        # pre-computed here (one project run = one username + time = one event).
+        # De-duplicated group totals (the grouped datasets share events, so runs
+        # are counted by distinct event = username + time).
         return (
-            subset.agg(
-                unique_users=subset.username.nunique(),
-                project_runs=subset.event.nunique(),
-                total_catalog_entries=subset.ds_count.sum(),
-                first_seen=subset.time.min().cast("date"),
-                last_seen=subset.time.max().cast("date"),
-            )
+            _usage_agg(subset, dedup_runs=True, with_dates=True)
             .mutate(
                 namespace=ibis.literal(ns),
                 is_genai=ibis.literal(is_genai, type="boolean"),
@@ -327,13 +326,10 @@ def build_experimental_dataset_usage(
     # additive. (Per-tool *monthly* isn't needed - the monthly chart shows the
     # additive catalog-entries metric, which the dashboard sums from `monthly`.)
     tool_summary = (
-        long.group_by(["namespace", "is_genai", "tool"])
-        .agg(
-            unique_users=ibis._.username.nunique(),
-            project_runs=ibis._.event.nunique(),
-            total_catalog_entries=ibis._.ds_count.sum(),
-            first_seen=ibis._.time.min().cast("date"),
-            last_seen=ibis._.time.max().cast("date"),
+        _usage_agg(
+            long.group_by(["namespace", "is_genai", "tool"]),
+            dedup_runs=True,
+            with_dates=True,
         )
         .filter(ibis._.unique_users >= genai_min_users)
         .order_by([ibis.desc("is_genai"), ibis.desc("unique_users")])
