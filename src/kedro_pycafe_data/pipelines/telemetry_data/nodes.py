@@ -1,21 +1,36 @@
 import ibis
 import ibis.expr.types as ir
+import ibis.selectors as s
+
+# Lower-cased prefixes of the telemetry `dataset_type_count.<FQN>` columns we track
+# (kedro-telemetry >= 0.8). Matching by prefix picks up new datasets automatically.
+_DATASET_COUNT_PREFIXES = (
+    "dataset_type_count_kedro_datasets_langchain_",  # core langchain (all GenAI)
+    "dataset_type_count_kedro_datasets_experimental_",  # everything experimental
+)
+
+# Experimental sub-packages that are GenAI/LLM-related; the rest is MLOps/data-format.
+_GENAI_PACKAGES = ["chromadb", "langchain", "langfuse", "opik"]
+
+# Real release versions only (e.g. 0.19, 1.2.6); excludes "test", "dev", "main".
+_RELEASE_VERSION_RE = r"^[0-9]+[.][0-9].*$"
+
+
+def _real_release_events(t: ir.Table) -> ir.Table:
+    """Keep only real user events on a released version: not CI, a real release,
+    and not the never-released 0.20 (which only comes from pre-release installs)."""
+    return t.filter(
+        t.is_ci_env.isnull() | (t.is_ci_env == "false"),
+        t.project_version.rlike(_RELEASE_VERSION_RE),
+        ~t.project_version.startswith("0.20"),
+    )
 
 
 def aggregate_project_stats(heap_stats: ir.Table) -> ir.Table:
     """Aggregate raw events to one row per (username, day) since 2024-09-01."""
-    heap_stats = heap_stats.rename(str.lower)
+    heap_stats = _real_release_events(heap_stats.rename(str.lower))
     return (
-        heap_stats.filter(
-            [
-                heap_stats.time.date() >= ibis.date("2024-09-01"),
-                heap_stats.is_ci_env.isnull() | (heap_stats.is_ci_env == "false"),
-                # Keep only real release versions (e.g. 0.19, 1.2.6); drops "test", "dev", "main"
-                heap_stats.project_version.rlike(r"^[0-9]+[.][0-9].*$"),
-                # 0.20 was never released (0.19 → 1.0); it only comes from pre-release/test installs
-                ~heap_stats.project_version.startswith("0.20"),
-            ]
-        )
+        heap_stats.filter(heap_stats.time.date() >= ibis.date("2024-09-01"))
         .group_by(["username", heap_stats.time.date().name("dt")])
         .agg(max_version_prefix=heap_stats.project_version.left(4).max())
     )
@@ -158,3 +173,166 @@ def build_command_mau(
         .agg(unique_users=ibis._.username.nunique())
         .order_by(["year_month", ibis.desc("unique_users")])
     )
+
+
+def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
+    """Unpivot the wide ``dataset_type_count_*`` columns to one labelled row per
+    (event, dataset class), keeping only core-langchain and experimental datasets."""
+    # Same real-release filter as the MAU/cohort metrics, so the numbers line up.
+    t = _real_release_events(heap_project_statistics.rename(str.lower))
+
+    count_cols = [c for c in t.columns if c.startswith(_DATASET_COUNT_PREFIXES)]
+    if not count_cols:
+        # No dataset-count columns yet (older table or changed schema). Add an
+        # empty placeholder so the pivot has a column and we return zero rows
+        # instead of raising.
+        placeholder = _DATASET_COUNT_PREFIXES[0] + "none"
+        t = t.mutate(**{placeholder: ibis.literal(None, type="string")})
+        count_cols = [placeholder]
+    t = t.select("username", "time", *count_cols)
+
+    # Counts are TEXT and only emitted when >= 1, so cast and keep the positives.
+    long = (
+        t.pivot_longer(
+            s.startswith(_DATASET_COUNT_PREFIXES),
+            names_to="ds_class",
+            values_to="ds_count",
+        )
+        .mutate(ds_count=ibis._.ds_count.try_cast("int"))
+        .filter(ibis._.ds_count > 0)
+    )
+
+    ds = long.ds_class
+    is_experimental = ds.contains("kedro_datasets_experimental_")
+    package = is_experimental.ifelse(
+        ds.re_extract(r"kedro_datasets_experimental_([a-z0-9]+)", 1), "langchain"
+    )
+    return long.mutate(
+        event=long.username + "|" + long.time.cast("string"),
+        month=long.time.truncate("M").cast("date"),
+        namespace=is_experimental.ifelse("experimental", "core"),
+        is_genai=~is_experimental | package.isin(_GENAI_PACKAGES),
+        tool=ibis.cases(
+            (package == "chromadb", "ChromaDB (vector store)"),
+            (package == "langfuse", "Langfuse (LLM observability)"),
+            (package == "opik", "Opik (LLM observability)"),
+            ((package == "langchain") & is_experimental, "LangChain prompt"),
+            (
+                (package == "langchain") & ~is_experimental,
+                "LangChain (chat / embeddings)",
+            ),
+            else_=package,  # other experimental datasets show their package name
+        ),
+        dataset_class=ds.replace("dataset_type_count_", ""),
+    )
+
+
+def _usage_agg(grouped, *, dedup_runs: bool, with_dates: bool) -> ir.Table:
+    """Standard usage metrics for a grouped (or whole) GenAI/experimental table.
+
+    ``dedup_runs`` controls how ``project_runs`` is counted: the per-dataset grain
+    has exactly one row per event so ``count()`` is exact; the per-tool/roll-up
+    grains span several datasets per event and must de-duplicate (``event.nunique()``).
+    """
+    aggs = {
+        "unique_users": ibis._.username.nunique(),
+        "project_runs": ibis._.event.nunique() if dedup_runs else ibis._.count(),
+        "total_catalog_entries": ibis._.ds_count.sum(),
+    }
+    if with_dates:
+        aggs["first_seen"] = ibis._.time.min().cast("date")
+        aggs["last_seen"] = ibis._.time.max().cast("date")
+    return grouped.agg(**aggs)
+
+
+def build_experimental_dataset_usage(
+    heap_project_statistics: ir.Table,
+    genai_min_users: int,
+) -> tuple[ir.Table, ir.Table, ir.Table]:
+    """Usage of GenAI/experimental datasets, at per-dataset and per-tool grains.
+
+    Returns ``(per-dataset monthly, per-dataset summary, per-tool summary)``. The
+    per-tool summary collapses a tool's datasets (e.g. Langfuse Prompt/Trace/
+    Evaluation) into one row with *de-duplicated* distinct users - the figure the
+    dashboard's left chart shows.
+
+    The dashboard filters ``is_genai`` (GenAI page) or ``namespace == 'experimental'``
+    (all-experimental page). Rows below ``genai_min_users`` distinct users are
+    suppressed (k-anonymity); the per-dataset ALL-* roll-up rows are exempt.
+    """
+    long = _genai_experimental_long(heap_project_statistics)
+    group_keys = ["namespace", "is_genai", "tool", "dataset_class"]
+
+    monthly = (
+        _usage_agg(
+            long.group_by(["month", *group_keys]), dedup_runs=False, with_dates=False
+        )
+        .filter(ibis._.unique_users >= genai_min_users)
+        .order_by(["month", "namespace", ibis.desc("unique_users")])
+    )
+
+    summary_cols = [
+        *group_keys,
+        "unique_users",
+        "project_runs",
+        "total_catalog_entries",
+        "first_seen",
+        "last_seen",
+    ]
+    per_dataset = (
+        _usage_agg(long.group_by(group_keys), dedup_runs=False, with_dates=True)
+        .filter(ibis._.unique_users >= genai_min_users)
+        .select(summary_cols)
+    )
+
+    def _rollup(
+        subset: ir.Table, label: str, ns: str, is_genai: bool | None
+    ) -> ir.Table:
+        # De-duplicated group totals (the grouped datasets share events, so runs
+        # are counted by distinct event = username + time).
+        return (
+            _usage_agg(subset, dedup_runs=True, with_dates=True)
+            .mutate(
+                namespace=ibis.literal(ns),
+                is_genai=ibis.literal(is_genai, type="boolean"),
+                tool=ibis.literal(label),
+                dataset_class=ibis.literal(label),
+            )
+            .select(summary_cols)
+        )
+
+    summary = (
+        per_dataset.union(
+            _rollup(long.filter(long.is_genai), "ALL GenAI datasets", "genai", True)
+        )
+        # is_genai is NULL (not False): this total mixes GenAI and non-GenAI
+        # experimental datasets, so it must not be read as "non-GenAI".
+        .union(
+            _rollup(
+                long.filter(long.namespace == "experimental"),
+                "ALL experimental datasets",
+                "experimental",
+                None,
+            )
+        )
+        # Drop empty roll-ups (e.g. no GenAI/experimental columns yet) so the
+        # output is genuinely empty rather than zeroed totals that look like data.
+        .filter(ibis._.unique_users > 0)
+        .order_by([ibis.desc("is_genai"), ibis.desc("unique_users")])
+    )
+
+    # Per-tool grain: a tool's datasets collapse into one
+    # row with de-duplicated distinct users / runs; total_catalog_entries stays
+    # additive. (Per-tool *monthly* isn't needed - the monthly chart shows the
+    # additive catalog-entries metric, which the dashboard sums from `monthly`.)
+    tool_summary = (
+        _usage_agg(
+            long.group_by(["namespace", "is_genai", "tool"]),
+            dedup_runs=True,
+            with_dates=True,
+        )
+        .filter(ibis._.unique_users >= genai_min_users)
+        .order_by([ibis.desc("is_genai"), ibis.desc("unique_users")])
+    )
+
+    return monthly, summary, tool_summary

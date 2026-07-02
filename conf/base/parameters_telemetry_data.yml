@@ -26,3 +26,9 @@ commands:
   - "kedro jupyter"
   - "kedro ipython"
   - "kedro package"
+
+# Drop per-dataset GenAI/experimental usage rows with fewer than this many distinct
+# users (k-anonymity); the ALL-* roll-up rows are exempt. Default 1 keeps every row
+# while these datasets are new and counts are tiny — raise to 2-3 before exposing the
+# dashboard more widely so no chart can reveal a single user.
+genai_min_users: 1
