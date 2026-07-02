@@ -1,6 +1,5 @@
 import ibis
 import ibis.expr.types as ir
-import ibis.selectors as s
 
 # Lower-cased prefixes of the telemetry `dataset_type_count.<FQN>` columns we track
 # (kedro-telemetry >= 0.8). Matching by prefix picks up new datasets automatically.
@@ -184,23 +183,31 @@ def _genai_experimental_long(heap_project_statistics: ir.Table) -> ir.Table:
     count_cols = [c for c in t.columns if c.startswith(_DATASET_COUNT_PREFIXES)]
     if not count_cols:
         # No dataset-count columns yet (older table or changed schema). Add an
-        # empty placeholder so the pivot has a column and we return zero rows
-        # instead of raising.
+        # empty placeholder so the long-form expression returns zero rows instead
+        # of raising.
         placeholder = _DATASET_COUNT_PREFIXES[0] + "none"
         t = t.mutate(**{placeholder: ibis.literal(None, type="string")})
         count_cols = [placeholder]
     t = t.select("username", "time", *count_cols)
 
-    # Counts are TEXT and only emitted when >= 1, so cast and keep the positives.
-    long = (
-        t.pivot_longer(
-            s.startswith(_DATASET_COUNT_PREFIXES),
-            names_to="ds_class",
-            values_to="ds_count",
+    # Counts are TEXT and only emitted when >= 1. Avoid `pivot_longer()` here:
+    # on Snowflake, Ibis 12 expands it through nested FLATTEN/object expressions
+    # that are much slower than explicit UNION ALL branches for this small
+    # tracked-column set.
+    long_parts = []
+    for count_col in count_cols:
+        positive_count = t[count_col].rlike(r"^[1-9][0-9]*$")
+        count_events = t.filter(positive_count)
+        long_parts.append(
+            count_events.select(
+                "username",
+                "time",
+                ibis.literal(count_col).name("ds_class"),
+                count_events[count_col].cast("int").name("ds_count"),
+            )
         )
-        .mutate(ds_count=ibis._.ds_count.try_cast("int"))
-        .filter(ibis._.ds_count > 0)
-    )
+
+    long = ibis.union(*long_parts, distinct=False)
 
     ds = long.ds_class
     is_experimental = ds.contains("kedro_datasets_experimental_")
@@ -260,9 +267,7 @@ def build_experimental_dataset_usage(
     (all-experimental page). Rows below ``genai_min_users`` distinct users are
     suppressed (k-anonymity); the per-dataset ALL-* roll-up rows are exempt.
     """
-    # Materialise once: the three outputs (and the roll-up unions) would otherwise
-    # each re-run the expensive pivot over the wide KEDRO_PROJECT_STATISTICS table.
-    long = _genai_experimental_long(heap_project_statistics).cache()
+    long = _genai_experimental_long(heap_project_statistics)
     group_keys = ["namespace", "is_genai", "tool", "dataset_class"]
 
     monthly = (
