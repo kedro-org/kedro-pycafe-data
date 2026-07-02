@@ -260,7 +260,9 @@ def build_experimental_dataset_usage(
     (all-experimental page). Rows below ``genai_min_users`` distinct users are
     suppressed (k-anonymity); the per-dataset ALL-* roll-up rows are exempt.
     """
-    long = _genai_experimental_long(heap_project_statistics)
+    # Materialise once: the three outputs (and the roll-up unions) would otherwise
+    # each re-run the expensive pivot over the wide KEDRO_PROJECT_STATISTICS table.
+    long = _genai_experimental_long(heap_project_statistics).cache()
     group_keys = ["namespace", "is_genai", "tool", "dataset_class"]
 
     monthly = (
