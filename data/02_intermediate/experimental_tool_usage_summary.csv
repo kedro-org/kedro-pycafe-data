@@ -1,5 +1,5 @@
 "namespace","is_genai","tool","unique_users","project_runs","total_catalog_entries","first_seen","last_seen"
-"core",true,"LangChain (chat / embeddings)",10,138,259,2026-06-03,2026-07-01
+"core",true,"LangChain (chat / embeddings)",10,142,263,2026-06-03,2026-07-03
 "experimental",true,"LangChain prompt",6,133,292,2026-05-29,2026-07-02
 "experimental",true,"Langfuse (LLM observability)",4,27,159,2026-06-03,2026-07-01
 "experimental",true,"Opik (LLM observability)",3,29,123,2026-06-03,2026-06-30
