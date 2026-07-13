@@ -21,7 +21,7 @@ dynamic = [
 ]
 dependencies = [
   "ipython>=8.10",
-  "jupyterlab>=4.5.7",
+  "jupyterlab>=4.5.9",
   "kedro~=1.0.0",
   "kedro-datasets[ibis-snowflake]>=9.4",
   "notebook",
