@@ -4,6 +4,6 @@
 "experimental",true,"Langfuse (LLM observability)",4,31,183,2026-06-03,2026-07-03
 "experimental",true,"Opik (LLM observability)",3,29,123,2026-06-03,2026-06-30
 "experimental",true,"ChromaDB (vector store)",2,58,58,2026-05-29,2026-07-14
-"experimental",false,"feast",27,37,72,2026-07-15,2026-07-16
+"experimental",false,"feast",30,40,78,2026-07-15,2026-07-16
 "experimental",false,"mlrun",3,4,16,2026-06-15,2026-06-16
-"experimental",false,"netcdf",2,49,95,2026-06-18,2026-07-15
+"experimental",false,"netcdf",2,50,96,2026-06-18,2026-07-17
