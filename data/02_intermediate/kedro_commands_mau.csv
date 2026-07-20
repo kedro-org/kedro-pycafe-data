@@ -91,8 +91,8 @@
 "2025-10","kedro ipython",76
 "2025-10","kedro package",34
 "2025-11","kedro run",901
-"2025-11","kedro new",294
 "2025-11","kedro viz",294
+"2025-11","kedro new",294
 "2025-11","kedro pipeline",240
 "2025-11","kedro jupyter",89
 "2025-11","kedro ipython",78
@@ -146,10 +146,10 @@
 "2026-06","kedro jupyter",57
 "2026-06","kedro ipython",46
 "2026-06","kedro package",25
-"2026-07","kedro run",438
-"2026-07","kedro viz",113
+"2026-07","kedro run",439
+"2026-07","kedro viz",114
 "2026-07","kedro new",76
-"2026-07","kedro pipeline",73
+"2026-07","kedro pipeline",74
 "2026-07","kedro jupyter",32
-"2026-07","kedro ipython",28
-"2026-07","kedro package",12
+"2026-07","kedro ipython",29
+"2026-07","kedro package",13
