@@ -11,6 +11,9 @@ _DATASET_COUNT_PREFIXES = (
 # Experimental sub-packages that are GenAI/LLM-related; the rest is MLOps/data-format.
 _GENAI_PACKAGES = ["chromadb", "langchain", "langfuse", "opik"]
 
+# Kedro Pipeline Builder events land in Heap's ALL_EVENTS with this name prefix.
+_BUILDER_EVENT_PREFIX = "custom_events_"
+
 # Real release versions only (e.g. 0.19, 1.2.6); excludes "test", "dev", "main".
 _RELEASE_VERSION_RE = r"^[0-9]+[.][0-9].*$"
 
@@ -343,3 +346,38 @@ def build_experimental_dataset_usage(
     )
 
     return monthly, summary, tool_summary
+
+
+def build_pipeline_builder_usage(
+    heap_builder_events: ir.Table,
+) -> tuple[ir.Table, ir.Table]:
+    """Kedro Pipeline Builder usage, at monthly and all-time grains.
+
+    Reads Heap's ALL_EVENTS index (the dev project) and keeps the Builder's
+    custom events (``event_table_name`` like ``custom_events_*``). Returns
+    ``(monthly, summary)`` with event counts and distinct users per event.
+    """
+    builder = (
+        heap_builder_events.rename(str.lower)
+        .filter(ibis._.event_table_name.startswith(_BUILDER_EVENT_PREFIX))
+        .mutate(month=ibis._.time.truncate("M").cast("date"))
+    )
+
+    monthly = (
+        builder.group_by(["event_table_name", "month"])
+        .agg(events=ibis._.count(), distinct_users=ibis._.user_id.nunique())
+        .rename(event="event_table_name")
+        .order_by(["month", ibis.desc("distinct_users")])
+    )
+    summary = (
+        builder.group_by("event_table_name")
+        .agg(
+            events=ibis._.count(),
+            distinct_users=ibis._.user_id.nunique(),
+            first_seen=ibis._.time.min().cast("date"),
+            last_seen=ibis._.time.max().cast("date"),
+        )
+        .rename(event="event_table_name")
+        .order_by(ibis.desc("distinct_users"))
+    )
+    return monthly, summary
