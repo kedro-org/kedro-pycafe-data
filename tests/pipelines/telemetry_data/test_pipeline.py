@@ -237,8 +237,15 @@ def test_telemetry_pipeline(catalog, caplog):
 
     # Monthly grain: app_opened has 2 distinct users in Nov, 1 in Dec.
     builder_monthly = catalog.load("builder_events_monthly").execute()
-    assert set(builder_monthly.columns) == {"event", "month", "events", "distinct_users"}
-    builder_monthly["month_str"] = pd.to_datetime(builder_monthly["month"]).dt.strftime("%Y-%m")
+    assert set(builder_monthly.columns) == {
+        "event",
+        "month",
+        "events",
+        "distinct_users",
+    }
+    builder_monthly["month_str"] = pd.to_datetime(builder_monthly["month"]).dt.strftime(
+        "%Y-%m"
+    )
     app_by_month = builder_monthly[
         builder_monthly["event"] == "custom_events_app_opened"
     ].set_index("month_str")
