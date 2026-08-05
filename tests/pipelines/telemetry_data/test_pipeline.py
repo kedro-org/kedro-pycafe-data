@@ -75,6 +75,9 @@ def catalog():
     catalog["params:commands"] = COMMANDS
     catalog["params:cohort_trailing_hide_months"] = 2
     catalog["params:genai_min_users"] = 1
+    # user 999 is a stand-in internal/test account; excluding it must remove all
+    # of its Builder events from both grains.
+    catalog["params:builder_excluded_user_ids"] = [999]
     return catalog
 
 
@@ -220,7 +223,9 @@ def test_telemetry_pipeline(catalog, caplog):
     assert int(langfuse_tool["total_catalog_entries"]) == 7
 
     # Pipeline Builder events: only custom_events_* are kept (pageviews/sessions
-    # dropped), counting events + distinct users per event.
+    # dropped), and the excluded internal account (user 999) contributes nothing —
+    # its 3 app_opened + 1 project_created rows are all dropped, so the counts below
+    # reflect only users 1 and 2.
     builder = catalog.load("builder_events_summary").execute()
     assert set(builder.columns) == {
         "event",

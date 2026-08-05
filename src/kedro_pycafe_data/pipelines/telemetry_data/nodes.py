@@ -350,18 +350,23 @@ def build_experimental_dataset_usage(
 
 def build_pipeline_builder_usage(
     heap_builder_events: ir.Table,
+    excluded_user_ids: list[int] | None = None,
 ) -> tuple[ir.Table, ir.Table]:
     """Kedro Pipeline Builder usage, at monthly and all-time grains.
 
     Reads Heap's ALL_EVENTS index (the dev project) and keeps the Builder's
-    custom events (``event_table_name`` like ``custom_events_*``). Returns
-    ``(monthly, summary)`` with event counts and distinct users per event.
+    custom events (``event_table_name`` like ``custom_events_*``). Known
+    internal/test accounts in ``excluded_user_ids`` are dropped first so the
+    counts reflect real adoption (a couple of heavy testers otherwise dominate
+    the event volume). Returns ``(monthly, summary)`` with event counts and
+    distinct users per event.
     """
-    builder = (
-        heap_builder_events.rename(str.lower)
-        .filter(ibis._.event_table_name.startswith(_BUILDER_EVENT_PREFIX))
-        .mutate(month=ibis._.time.truncate("M").cast("date"))
+    builder = heap_builder_events.rename(str.lower).filter(
+        ibis._.event_table_name.startswith(_BUILDER_EVENT_PREFIX)
     )
+    if excluded_user_ids:
+        builder = builder.filter(~ibis._.user_id.isin(excluded_user_ids))
+    builder = builder.mutate(month=ibis._.time.truncate("M").cast("date"))
 
     monthly = (
         builder.group_by(["event_table_name", "month"])
