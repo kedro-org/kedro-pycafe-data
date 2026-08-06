@@ -2,8 +2,8 @@
 "genai",true,"ALL GenAI datasets","ALL GenAI datasets",20,343,1481,2026-05-29,2026-07-29
 "experimental",true,"LangChain prompt","kedro_datasets_experimental_langchain_prompt_dataset_promptdataset",11,181,689,2026-05-29,2026-07-23
 "core",true,"LangChain (chat / embeddings)","kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset",10,187,304,2026-06-03,2026-07-22
-"experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_trace_dataset_tracedataset",7,64,157,2026-06-03,2026-07-29
 "experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_evaluation_dataset_evaluationdataset",7,64,64,2026-06-03,2026-07-29
+"experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_trace_dataset_tracedataset",7,64,157,2026-06-03,2026-07-29
 "experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_prompt_dataset_promptdataset",4,31,61,2026-06-03,2026-07-03
 "experimental",true,"ChromaDB (vector store)","kedro_datasets_experimental_chromadb_chromadb_dataset_chromadbdataset",3,62,62,2026-05-29,2026-07-19
 "experimental",true,"Opik (LLM observability)","kedro_datasets_experimental_opik_prompt_dataset_promptdataset",3,29,41,2026-06-03,2026-06-30
@@ -13,9 +13,9 @@
 "experimental",true,"LangChain prompt","kedro_datasets_experimental_langchain_promptdataset",1,1,13,2026-07-22,2026-07-22
 "experimental",false,"feast","kedro_datasets_experimental_feast_feast_dataset_feastdataset",41,62,188,2026-07-15,2026-07-20
 "experimental",false,"mlrun","kedro_datasets_experimental_mlrun_model_mlrunmodel",3,4,8,2026-06-15,2026-06-16
-"experimental",false,"mlrun","kedro_datasets_experimental_mlrun_result_mlrunresult",3,4,4,2026-06-15,2026-06-16
 "experimental",false,"mlrun","kedro_datasets_experimental_mlrun_df_dataset_mlrundataframedataset",3,4,4,2026-06-15,2026-06-16
+"experimental",false,"mlrun","kedro_datasets_experimental_mlrun_result_mlrunresult",3,4,4,2026-06-15,2026-06-16
 "experimental",false,"netcdf","kedro_datasets_experimental_netcdf_netcdf_dataset_netcdfdataset",2,50,96,2026-06-18,2026-07-17
-"experimental",false,"pytorch","kedro_datasets_experimental_pytorch_pytorch_dataset_pytorchdataset",1,10,20,2026-08-02,2026-08-02
 "experimental",false,"optuna","kedro_datasets_experimental_optuna_study_dataset_studydataset",1,10,20,2026-08-02,2026-08-02
+"experimental",false,"pytorch","kedro_datasets_experimental_pytorch_pytorch_dataset_pytorchdataset",1,10,20,2026-08-02,2026-08-02
 "experimental",,"ALL experimental datasets","ALL experimental datasets",60,341,1509,2026-05-29,2026-08-02
