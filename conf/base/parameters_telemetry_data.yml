@@ -32,3 +32,13 @@ commands:
 # while these datasets are new and counts are tiny — raise to 2-3 before exposing the
 # dashboard more widely so no chart can reveal a single user.
 genai_min_users: 1
+
+# Internal/test Heap user_ids to exclude from the Pipeline Builder metrics. These
+# are the team's own testing of the Builder — e.g. user 6498551721816740 alone
+# fired ~55% of all `app_opened` events, and the top two accounts together are ~69%
+# — so dropping them keeps distinct-user and event counts representative of real
+# adoption. Add new test accounts here as they appear; leave empty ([]) to include
+# everyone.
+builder_excluded_user_ids:
+  - 6498551721816740
+  - 2948339842899470

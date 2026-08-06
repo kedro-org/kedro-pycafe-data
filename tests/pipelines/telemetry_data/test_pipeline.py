@@ -60,10 +60,24 @@ def catalog():
         filepath=str(DATA_DIR / "heap_any_command_run.csv"),
         file_format="csv",
     )
+    catalog["heap_builder_events"] = FileDataset(
+        filepath=str(DATA_DIR / "heap_all_events.csv"),
+        file_format="csv",
+        load_args={
+            "columns": {
+                "time": "TIMESTAMP",
+                "user_id": "BIGINT",
+                "event_table_name": "VARCHAR",
+            }
+        },
+    )
     catalog["params:plugins"] = PLUGINS
     catalog["params:commands"] = COMMANDS
     catalog["params:cohort_trailing_hide_months"] = 2
     catalog["params:genai_min_users"] = 1
+    # user 999 is a stand-in internal/test account; excluding it must remove all
+    # of its Builder events from both grains.
+    catalog["params:builder_excluded_user_ids"] = [999]
     return catalog
 
 
@@ -207,3 +221,38 @@ def test_telemetry_pipeline(catalog, caplog):
     assert int(langfuse_tool["unique_users"]) == 2
     assert int(langfuse_tool["project_runs"]) == 2
     assert int(langfuse_tool["total_catalog_entries"]) == 7
+
+    # Pipeline Builder events: only custom_events_* are kept (pageviews/sessions
+    # dropped), and the excluded internal account (user 999) contributes nothing —
+    # its 3 app_opened + 1 project_created rows are all dropped, so the counts below
+    # reflect only users 1 and 2.
+    builder = catalog.load("builder_events_summary").execute()
+    assert set(builder.columns) == {
+        "event",
+        "events",
+        "distinct_users",
+        "first_seen",
+        "last_seen",
+    }
+    builder = builder.set_index("event")
+    assert "pageviews" not in builder.index and "sessions" not in builder.index
+    app_opened = builder.loc["custom_events_app_opened"]
+    assert int(app_opened["events"]) == 3 and int(app_opened["distinct_users"]) == 2
+    assert int(builder.loc["custom_events_project_created", "events"]) == 1
+
+    # Monthly grain: app_opened has 2 distinct users in Nov, 1 in Dec.
+    builder_monthly = catalog.load("builder_events_monthly").execute()
+    assert set(builder_monthly.columns) == {
+        "event",
+        "month",
+        "events",
+        "distinct_users",
+    }
+    builder_monthly["month_str"] = pd.to_datetime(builder_monthly["month"]).dt.strftime(
+        "%Y-%m"
+    )
+    app_by_month = builder_monthly[
+        builder_monthly["event"] == "custom_events_app_opened"
+    ].set_index("month_str")
+    assert int(app_by_month.loc["2025-11", "distinct_users"]) == 2
+    assert int(app_by_month.loc["2025-12", "distinct_users"]) == 1

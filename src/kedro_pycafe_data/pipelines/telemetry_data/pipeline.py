@@ -7,6 +7,7 @@ from .nodes import (
     build_experimental_dataset_usage,
     build_mau,
     build_new_users_monthly,
+    build_pipeline_builder_usage,
     get_active_events,
     get_unique_users,
 )
@@ -72,6 +73,12 @@ def create_pipeline(**kwargs) -> Pipeline:
                     "experimental_tool_usage_summary",
                 ],
                 name="build_experimental_dataset_usage",
+            ),
+            Node(
+                build_pipeline_builder_usage,
+                inputs=["heap_builder_events", "params:builder_excluded_user_ids"],
+                outputs=["builder_events_monthly", "builder_events_summary"],
+                name="build_pipeline_builder_usage",
             ),
         ]
     )
