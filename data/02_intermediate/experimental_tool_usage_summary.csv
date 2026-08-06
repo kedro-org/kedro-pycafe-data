@@ -2,10 +2,10 @@
 "experimental",true,"LangChain prompt",11,182,702,2026-05-29,2026-07-23
 "core",true,"LangChain (chat / embeddings)",10,187,312,2026-06-03,2026-07-22
 "experimental",true,"Langfuse (LLM observability)",7,64,282,2026-06-03,2026-07-29
-"experimental",true,"ChromaDB (vector store)",3,62,62,2026-05-29,2026-07-19
 "experimental",true,"Opik (LLM observability)",3,29,123,2026-06-03,2026-06-30
+"experimental",true,"ChromaDB (vector store)",3,62,62,2026-05-29,2026-07-19
 "experimental",false,"feast",41,62,188,2026-07-15,2026-07-20
 "experimental",false,"mlrun",3,4,16,2026-06-15,2026-06-16
 "experimental",false,"netcdf",2,50,96,2026-06-18,2026-07-17
-"experimental",false,"optuna",1,10,20,2026-08-02,2026-08-02
-"experimental",false,"pytorch",1,10,20,2026-08-02,2026-08-02
+"experimental",false,"pytorch",1,25,110,2026-08-02,2026-08-05
+"experimental",false,"optuna",1,25,140,2026-08-02,2026-08-05

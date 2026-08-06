@@ -16,6 +16,6 @@
 "experimental",false,"mlrun","kedro_datasets_experimental_mlrun_model_mlrunmodel",3,4,8,2026-06-15,2026-06-16
 "experimental",false,"mlrun","kedro_datasets_experimental_mlrun_df_dataset_mlrundataframedataset",3,4,4,2026-06-15,2026-06-16
 "experimental",false,"netcdf","kedro_datasets_experimental_netcdf_netcdf_dataset_netcdfdataset",2,50,96,2026-06-18,2026-07-17
-"experimental",false,"pytorch","kedro_datasets_experimental_pytorch_pytorch_dataset_pytorchdataset",1,10,20,2026-08-02,2026-08-02
-"experimental",false,"optuna","kedro_datasets_experimental_optuna_study_dataset_studydataset",1,10,20,2026-08-02,2026-08-02
-"experimental",,"ALL experimental datasets","ALL experimental datasets",60,341,1509,2026-05-29,2026-08-02
+"experimental",false,"optuna","kedro_datasets_experimental_optuna_study_dataset_studydataset",1,25,140,2026-08-02,2026-08-05
+"experimental",false,"pytorch","kedro_datasets_experimental_pytorch_pytorch_dataset_pytorchdataset",1,25,110,2026-08-02,2026-08-05
+"experimental",,"ALL experimental datasets","ALL experimental datasets",60,356,1719,2026-05-29,2026-08-05
