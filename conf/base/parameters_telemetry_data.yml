@@ -42,3 +42,13 @@ genai_min_users: 1
 builder_excluded_user_ids:
   - 6498551721816740
   - 2948339842899470
+
+# Custom events that sync into the dev Heap project but are NOT Pipeline Builder
+# adoption signal, so they're dropped from the Builder outputs. Covers Kedro-Viz /
+# VS Code events (which predate the Builder) and the Builder's copy/paste noise.
+# Everything else matching the custom_events_ prefix is kept automatically.
+builder_excluded_events:
+  - custom_events_items_copied
+  - custom_events_items_pasted
+  - custom_events_kedro_vscode_command
+  - custom_events_kedro_runkedroviz
