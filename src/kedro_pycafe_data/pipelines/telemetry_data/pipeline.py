@@ -76,7 +76,11 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
             Node(
                 build_pipeline_builder_usage,
-                inputs=["heap_builder_events", "params:builder_excluded_user_ids"],
+                inputs=[
+                    "heap_builder_events",
+                    "params:builder_excluded_user_ids",
+                    "params:builder_excluded_events",
+                ],
                 outputs=["builder_events_monthly", "builder_events_summary"],
                 name="build_pipeline_builder_usage",
             ),

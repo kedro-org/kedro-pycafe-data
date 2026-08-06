@@ -78,6 +78,11 @@ def catalog():
     # user 999 is a stand-in internal/test account; excluding it must remove all
     # of its Builder events from both grains.
     catalog["params:builder_excluded_user_ids"] = [999]
+    # Non-Builder custom events that must be dropped from the outputs entirely.
+    catalog["params:builder_excluded_events"] = [
+        "custom_events_items_copied",
+        "custom_events_kedro_runkedroviz",
+    ]
     return catalog
 
 
@@ -236,6 +241,9 @@ def test_telemetry_pipeline(catalog, caplog):
     }
     builder = builder.set_index("event")
     assert "pageviews" not in builder.index and "sessions" not in builder.index
+    # Non-Builder custom events in builder_excluded_events are dropped too.
+    assert "custom_events_items_copied" not in builder.index
+    assert "custom_events_kedro_runkedroviz" not in builder.index
     app_opened = builder.loc["custom_events_app_opened"]
     assert int(app_opened["events"]) == 3 and int(app_opened["distinct_users"]) == 2
     assert int(builder.loc["custom_events_project_created", "events"]) == 1
