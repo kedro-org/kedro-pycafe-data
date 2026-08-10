@@ -1,21 +1,21 @@
 "namespace","is_genai","tool","dataset_class","unique_users","project_runs","total_catalog_entries","first_seen","last_seen"
-"genai",true,"ALL GenAI datasets","ALL GenAI datasets",21,344,1483,2026-05-29,2026-08-08
-"experimental",true,"LangChain prompt","kedro_datasets_experimental_langchain_prompt_dataset_promptdataset",12,182,690,2026-05-29,2026-08-08
+"genai",true,"ALL GenAI datasets","ALL GenAI datasets",21,353,1501,2026-05-29,2026-08-08
+"experimental",true,"LangChain prompt","kedro_datasets_experimental_langchain_prompt_dataset_promptdataset",12,191,699,2026-05-29,2026-08-08
 "core",true,"LangChain (chat / embeddings)","kedro_datasets_langchain_chat_openai_dataset_chatopenaidataset",10,187,304,2026-06-03,2026-07-22
-"experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_evaluation_dataset_evaluationdataset",7,64,64,2026-06-03,2026-07-29
 "experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_trace_dataset_tracedataset",7,64,157,2026-06-03,2026-07-29
+"experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_evaluation_dataset_evaluationdataset",7,64,64,2026-06-03,2026-07-29
+"experimental",true,"ChromaDB (vector store)","kedro_datasets_experimental_chromadb_chromadb_dataset_chromadbdataset",4,72,72,2026-05-29,2026-08-08
 "experimental",true,"Langfuse (LLM observability)","kedro_datasets_experimental_langfuse_prompt_dataset_promptdataset",4,31,61,2026-06-03,2026-07-03
-"experimental",true,"ChromaDB (vector store)","kedro_datasets_experimental_chromadb_chromadb_dataset_chromadbdataset",4,63,63,2026-05-29,2026-08-08
 "experimental",true,"Opik (LLM observability)","kedro_datasets_experimental_opik_prompt_dataset_promptdataset",3,29,41,2026-06-03,2026-06-30
 "experimental",true,"Opik (LLM observability)","kedro_datasets_experimental_opik_trace_dataset_tracedataset",3,29,70,2026-06-03,2026-06-30
 "experimental",true,"Opik (LLM observability)","kedro_datasets_experimental_opik_evaluation_dataset_evaluationdataset",2,12,12,2026-06-17,2026-06-30
 "experimental",true,"LangChain prompt","kedro_datasets_experimental_langchain_promptdataset",1,1,13,2026-07-22,2026-07-22
 "core",true,"LangChain (chat / embeddings)","kedro_datasets_langchain_openai_embeddings_dataset_openaiembeddingsdataset",1,8,8,2026-06-22,2026-06-22
 "experimental",false,"feast","kedro_datasets_experimental_feast_feast_dataset_feastdataset",41,62,188,2026-07-15,2026-07-20
-"experimental",false,"mlrun","kedro_datasets_experimental_mlrun_model_mlrunmodel",3,4,8,2026-06-15,2026-06-16
-"experimental",false,"mlrun","kedro_datasets_experimental_mlrun_result_mlrunresult",3,4,4,2026-06-15,2026-06-16
 "experimental",false,"mlrun","kedro_datasets_experimental_mlrun_df_dataset_mlrundataframedataset",3,4,4,2026-06-15,2026-06-16
+"experimental",false,"mlrun","kedro_datasets_experimental_mlrun_result_mlrunresult",3,4,4,2026-06-15,2026-06-16
+"experimental",false,"mlrun","kedro_datasets_experimental_mlrun_model_mlrunmodel",3,4,8,2026-06-15,2026-06-16
 "experimental",false,"netcdf","kedro_datasets_experimental_netcdf_netcdf_dataset_netcdfdataset",2,50,96,2026-06-18,2026-07-17
 "experimental",false,"optuna","kedro_datasets_experimental_optuna_study_dataset_studydataset",1,32,252,2026-08-02,2026-08-06
 "experimental",false,"pytorch","kedro_datasets_experimental_pytorch_pytorch_dataset_pytorchdataset",1,32,194,2026-08-02,2026-08-06
-"experimental",,"ALL experimental datasets","ALL experimental datasets",61,364,1917,2026-05-29,2026-08-08
+"experimental",,"ALL experimental datasets","ALL experimental datasets",61,373,1935,2026-05-29,2026-08-08
