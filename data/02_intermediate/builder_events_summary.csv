@@ -1,9 +1,9 @@
 "event","events","distinct_users","first_seen","last_seen"
-"custom_events_app_opened",535,181,2025-11-05,2026-08-19
-"custom_events_project_created",84,73,2025-11-05,2026-08-18
-"custom_events_dataset_added",146,47,2025-11-05,2026-08-18
-"custom_events_node_added",117,44,2025-11-07,2026-08-19
+"custom_events_app_opened",544,183,2025-11-05,2026-08-20
+"custom_events_project_created",85,74,2025-11-05,2026-08-19
+"custom_events_dataset_added",147,47,2025-11-05,2026-08-20
+"custom_events_node_added",119,45,2025-11-07,2026-08-19
 "custom_events_code_viewed",130,35,2025-11-05,2026-08-19
 "custom_events_project_exported",21,17,2025-11-07,2026-08-19
 "custom_events_project_updated",19,14,2025-11-20,2026-08-19
-"custom_events_feedback_submitted",3,3,2026-04-24,2026-08-19
+"custom_events_feedback_submitted",5,3,2026-04-24,2026-08-20
