@@ -1,10 +1,10 @@
 "year_month","first_two_words","unique_users"
-"2024-10","kedro run",594
-"2024-10","kedro viz",291
-"2024-10","kedro new",287
+"2024-10","kedro run",595
+"2024-10","kedro viz",292
+"2024-10","kedro new",288
 "2024-10","kedro pipeline",182
 "2024-10","kedro jupyter",113
-"2024-10","kedro ipython",81
+"2024-10","kedro ipython",82
 "2024-10","kedro package",31
 "2024-11","kedro run",609
 "2024-11","kedro viz",284
@@ -91,7 +91,7 @@
 "2025-10","kedro ipython",76
 "2025-10","kedro package",34
 "2025-11","kedro run",903
-"2025-11","kedro new",298
+"2025-11","kedro new",299
 "2025-11","kedro viz",296
 "2025-11","kedro pipeline",240
 "2025-11","kedro jupyter",89
@@ -113,7 +113,7 @@
 "2026-01","kedro package",35
 "2026-02","kedro run",804
 "2026-02","kedro viz",264
-"2026-02","kedro new",254
+"2026-02","kedro new",255
 "2026-02","kedro pipeline",195
 "2026-02","kedro ipython",66
 "2026-02","kedro jupyter",58
@@ -125,15 +125,15 @@
 "2026-03","kedro jupyter",73
 "2026-03","kedro ipython",63
 "2026-03","kedro package",23
-"2026-04","kedro run",935
+"2026-04","kedro run",936
 "2026-04","kedro viz",294
-"2026-04","kedro new",283
+"2026-04","kedro new",284
 "2026-04","kedro pipeline",226
 "2026-04","kedro jupyter",88
 "2026-04","kedro ipython",70
 "2026-04","kedro package",17
-"2026-05","kedro run",844
-"2026-05","kedro viz",265
+"2026-05","kedro run",845
+"2026-05","kedro viz",266
 "2026-05","kedro new",232
 "2026-05","kedro pipeline",187
 "2026-05","kedro jupyter",71
@@ -141,7 +141,7 @@
 "2026-05","kedro package",18
 "2026-06","kedro run",784
 "2026-06","kedro viz",228
-"2026-06","kedro new",175
+"2026-06","kedro new",176
 "2026-06","kedro pipeline",160
 "2026-06","kedro jupyter",57
 "2026-06","kedro ipython",50
@@ -160,10 +160,10 @@
 "2026-08","kedro jupyter",42
 "2026-08","kedro ipython",34
 "2026-08","kedro package",28
-"2026-09","kedro run",308
-"2026-09","kedro viz",77
-"2026-09","kedro new",61
-"2026-09","kedro pipeline",60
+"2026-09","kedro run",317
+"2026-09","kedro viz",82
+"2026-09","kedro pipeline",66
+"2026-09","kedro new",62
 "2026-09","kedro jupyter",16
+"2026-09","kedro ipython",9
 "2026-09","kedro package",8
-"2026-09","kedro ipython",8
