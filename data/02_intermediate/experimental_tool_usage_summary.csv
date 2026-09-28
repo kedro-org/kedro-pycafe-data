@@ -1,6 +1,6 @@
 "namespace","is_genai","tool","unique_users","project_runs","total_catalog_entries","first_seen","last_seen"
-"experimental",true,"LangChain prompt",17,251,962,2026-05-29,2026-09-18
-"experimental",true,"Langfuse (LLM observability)",16,88,351,2026-06-03,2026-09-26
+"experimental",true,"LangChain prompt",19,253,980,2026-05-29,2026-09-28
+"experimental",true,"Langfuse (LLM observability)",16,89,354,2026-06-03,2026-09-26
 "core",true,"LangChain (chat / embeddings)",14,208,340,2026-06-03,2026-09-18
 "experimental",true,"ChromaDB (vector store)",6,95,95,2026-05-29,2026-09-09
 "experimental",true,"Opik (LLM observability)",4,32,141,2026-06-03,2026-08-12
@@ -8,5 +8,5 @@
 "experimental",false,"netcdf",6,71,117,2026-06-18,2026-09-10
 "experimental",false,"mlrun",3,4,16,2026-06-15,2026-06-16
 "experimental",false,"pytorch",2,40,245,2026-08-02,2026-09-12
-"experimental",false,"pypdf",1,83,164,2026-08-26,2026-09-25
 "experimental",false,"optuna",1,39,315,2026-08-02,2026-08-31
+"experimental",false,"pypdf",1,135,268,2026-08-26,2026-09-27
