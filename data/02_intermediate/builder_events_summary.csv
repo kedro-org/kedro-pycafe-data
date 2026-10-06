@@ -1,6 +1,6 @@
 "event","events","distinct_users","first_seen","last_seen"
-"custom_events_app_opened",571,193,2025-11-05,2026-10-03
-"custom_events_project_created",93,82,2025-11-05,2026-10-03
+"custom_events_app_opened",572,194,2025-11-05,2026-10-05
+"custom_events_project_created",94,83,2025-11-05,2026-10-05
 "custom_events_dataset_added",157,50,2025-11-05,2026-10-03
 "custom_events_node_added",143,49,2025-11-07,2026-10-03
 "custom_events_code_viewed",134,38,2025-11-05,2026-10-03
