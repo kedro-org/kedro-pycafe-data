@@ -5,8 +5,8 @@
 "experimental",true,"ChromaDB (vector store)",6,95,95,2026-05-29,2026-09-09
 "experimental",true,"Opik (LLM observability)",4,32,141,2026-06-03,2026-08-12
 "experimental",false,"feast",41,62,188,2026-07-15,2026-07-20
-"experimental",false,"netcdf",7,91,287,2026-06-18,2026-10-04
+"experimental",false,"netcdf",7,189,1049,2026-06-18,2026-10-07
 "experimental",false,"mlrun",3,4,16,2026-06-15,2026-06-16
 "experimental",false,"pytorch",2,40,245,2026-08-02,2026-09-12
-"experimental",false,"optuna",1,39,315,2026-08-02,2026-08-31
+"experimental",false,"optuna",2,40,316,2026-08-02,2026-10-06
 "experimental",false,"pypdf",1,186,370,2026-08-26,2026-10-06
