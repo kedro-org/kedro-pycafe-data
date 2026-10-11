@@ -1,10 +1,10 @@
 "year_month","first_two_words","unique_users"
 "2024-10","kedro run",596
-"2024-10","kedro viz",293
-"2024-10","kedro new",289
+"2024-10","kedro viz",294
+"2024-10","kedro new",290
 "2024-10","kedro pipeline",182
 "2024-10","kedro jupyter",113
-"2024-10","kedro ipython",83
+"2024-10","kedro ipython",84
 "2024-10","kedro package",31
 "2024-11","kedro run",609
 "2024-11","kedro viz",284
@@ -167,10 +167,10 @@
 "2026-09","kedro package",32
 "2026-09","kedro ipython",32
 "2026-09","kedro jupyter",30
-"2026-10","kedro run",230
-"2026-10","kedro viz",49
-"2026-10","kedro new",39
-"2026-10","kedro pipeline",28
-"2026-10","kedro package",12
+"2026-10","kedro run",243
+"2026-10","kedro viz",52
+"2026-10","kedro new",41
+"2026-10","kedro pipeline",29
+"2026-10","kedro package",13
 "2026-10","kedro jupyter",10
 "2026-10","kedro ipython",7
