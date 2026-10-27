@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import ibis.expr.types as ir
 import pandas as pd
 
@@ -50,7 +52,11 @@ def _validate_counts(frame: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
 def export_downloads(
     totals: ir.Table, extended: ir.Table
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Read and reconcile both exports before either CSV is saved."""
+    """Read and reconcile completed UTC days before either CSV is saved."""
+    # Share one cutoff, even if the two reads straddle midnight.
+    today = datetime.now(timezone.utc).date()
+    totals = totals.filter(totals.DATE < today)
+    extended = extended.filter(extended.DATE < today)
     daily = _validate_counts(
         totals.select("PROJECT", "DATE", "COUNT").execute(), ["PROJECT", "DATE"]
     )

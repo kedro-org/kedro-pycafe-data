@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
+from unittest.mock import Mock
 
 import ibis
 import pandas as pd
@@ -9,6 +10,7 @@ from kedro.io import DataCatalog, MemoryDataset
 from kedro.runner import SequentialRunner
 from kedro_datasets.pandas import CSVDataset
 
+from kedro_pycafe_data.pipelines.data_transfer import nodes
 from kedro_pycafe_data.pipelines.data_transfer.nodes import (
     download_segments,
     export_downloads,
@@ -42,6 +44,14 @@ def traffic(**changes):
         "count": 10,
         **changes,
     }
+
+
+@pytest.fixture(autouse=True)
+def export_clock(monkeypatch):
+    clock = Mock(wraps=datetime)
+    clock.now.return_value = datetime(2026, 5, 3, tzinfo=timezone.utc)
+    monkeypatch.setattr(nodes, "datetime", clock)
+    return clock
 
 
 @pytest.fixture
@@ -179,3 +189,38 @@ def test_pipeline_saves_only_validated_csvs(connection, tmp_path, main_count):
     ]
     assert split["SEGMENT"].tolist() == ["likely_automated", "other"]
     assert split["COUNT"].tolist() == [7, 3]
+
+
+@pytest.mark.parametrize("partial_source", ["main", "extended", "both"])
+def test_excludes_unfinished_and_future_days_from_both_exports(
+    connection, export_clock, partial_source
+):
+    rows = [traffic()]
+    daily_rows = [{"PROJECT": "kedro-viz", "DATE": DAY, "COUNT": 10}]
+    for day in [date(2026, 5, 3), date(2026, 5, 4)]:
+        if partial_source in ["main", "both"]:
+            daily_rows.append({"PROJECT": "kedro-viz", "DATE": day, "COUNT": 99})
+        if partial_source in ["extended", "both"]:
+            rows.append(traffic(DATE=day, count=50))
+    totals, extended = tables(connection, rows, daily_rows)
+    daily, split = export_downloads(totals, extended)
+    assert daily["DATE"].tolist() == [DAY]
+    assert split["DATE"].tolist() == [DAY]
+    assert daily["COUNT"].tolist() == split["COUNT"].tolist() == [10]
+    export_clock.now.assert_called_once_with(timezone.utc)
+
+
+@pytest.mark.parametrize("missing_source", ["main", "extended"])
+def test_does_not_drop_completed_dates_missing_from_one_table(
+    connection, missing_source
+):
+    yesterday = date(2026, 5, 2)
+    rows = [traffic()]
+    daily_rows = [{"PROJECT": "kedro-viz", "DATE": DAY, "COUNT": 10}]
+    if missing_source == "main":
+        rows.append(traffic(DATE=yesterday))
+    else:
+        daily_rows.append({"PROJECT": "kedro-viz", "DATE": yesterday, "COUNT": 10})
+    totals, extended = tables(connection, rows, daily_rows)
+    with pytest.raises(ValueError, match="totals differ"):
+        export_downloads(totals, extended)

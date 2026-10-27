@@ -45,34 +45,17 @@ not identify its operator or prove that every matching request is automated.
 Counts represent package-file requests, not people or completed installations.
 Zero segments may be absent; charts should treat those as zero.
 
-The export aggregates in Snowflake with read-only queries, then checks the
-small daily results locally. It rejects missing or negative counts, duplicate
-keys, and any difference between the split and main totals for any package
-or date. Both CSVs are saved from the checked results. A failed check stops
-the workflow before it commits or publishes any CSVs.
+Both download CSVs exclude the current UTC day and any future dates, using
+one cutoff per run. Earlier dates must match between the main and extended
+tables; missing dates, differing totals, invalid counts or duplicate keys stop
+publication. The exporter does not silently restrict checks to shared dates.
 
 The export account needs SELECT access to `AGGREGATED_DOWNLOADS_EXT` as well
-as the existing views. No new Snowflake table or view is required.
+as the existing views. Queries are read-only; no new table or view is needed.
 
-Before switching the dashboard to the real split CSV, verify these
-January–September 2026 investigation controls against the generated export:
-
-| Package | All other downloads | Likely automated | Total |
-|---|---:|---:|---:|
-| Kedro | 4,732,763 | 1,268,667 | 6,001,430 |
-| Kedro-Viz | 2,019,598 | 3,837,358 | 5,856,956 |
-
-Snowflake stores a derived system release category, while the original
-investigation matched `azure` in the raw release string. The upstream
-classification prioritizes AWS/GCP matches before Azure, so reconcile the
-group controls before treating those definitions as equivalent. Source
-revisions may also require investigating differences; the historical controls
-are not permanent runtime limits.
-
-Refresh the existing country and plugin exports from the corrected source
-as well. They retain their current presentation and do not receive this
-traffic split. The dashboard change is separate: point it at the real split
-CSV and use its actual date coverage instead of the preview's fixed dates.
+Before connecting the chart, verify the group totals against the investigation
+results. Snowflake's saved `azure` category may differ from the original raw
+release-string match. Matching overall totals alone does not verify the split.
 
 ### `telemetry_data`
 
