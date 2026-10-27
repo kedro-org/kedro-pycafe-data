@@ -45,10 +45,11 @@ not identify its operator or prove that every matching request is automated.
 Counts represent package-file requests, not people or completed installations.
 Zero segments may be absent; charts should treat those as zero.
 
-Both download CSVs exclude the current UTC day and any future dates, using
-one cutoff per run. Earlier dates must match between the main and extended
-tables; missing dates, differing totals, invalid counts or duplicate keys stop
-publication. The exporter does not silently restrict checks to shared dates.
+Both source tables must have the same latest date. Both download CSVs omit
+that potentially incomplete loader day, even when the export runs days later.
+Earlier dates must match; missing dates, differing totals, invalid counts or
+duplicate keys stop publication. Daily runs remain blocked until the source
+mismatch is resolved. Checks are not restricted to dates shared by both tables.
 
 The export account needs SELECT access to `AGGREGATED_DOWNLOADS_EXT` as well
 as the existing views. Queries are read-only; no new table or view is needed.

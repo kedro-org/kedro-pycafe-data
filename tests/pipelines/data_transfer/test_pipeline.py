@@ -46,14 +46,6 @@ def traffic(**changes):
     }
 
 
-@pytest.fixture(autouse=True)
-def export_clock(monkeypatch):
-    clock = Mock(wraps=datetime)
-    clock.now.return_value = datetime(2026, 5, 3, tzinfo=timezone.utc)
-    monkeypatch.setattr(nodes, "datetime", clock)
-    return clock
-
-
 @pytest.fixture
 def connection():
     con = ibis.duckdb.connect()
@@ -61,10 +53,14 @@ def connection():
     con.disconnect()
 
 
-def tables(connection, rows, daily=None):
-    extended = connection.create_table("extended", pd.DataFrame(rows), schema=SCHEMA)
+def tables(connection, rows, daily=None, latest_date=date(2026, 5, 3)):
     if daily is None:
         daily = [{"PROJECT": "kedro-viz", "DATE": DAY, "COUNT": 10}]
+    # Most tests exercise earlier history, with a shared partial day to omit.
+    if latest_date is not None:
+        rows = rows + [traffic(DATE=latest_date, count=5)]
+        daily = daily + [{"PROJECT": "kedro-viz", "DATE": latest_date, "COUNT": 6}]
+    extended = connection.create_table("extended", pd.DataFrame(rows), schema=SCHEMA)
     totals = connection.create_table("totals", pd.DataFrame(daily))
     return totals, extended
 
@@ -191,23 +187,52 @@ def test_pipeline_saves_only_validated_csvs(connection, tmp_path, main_count):
     assert split["COUNT"].tolist() == [7, 3]
 
 
-@pytest.mark.parametrize("partial_source", ["main", "extended", "both"])
-def test_excludes_unfinished_and_future_days_from_both_exports(
-    connection, export_clock, partial_source
+@pytest.mark.parametrize(
+    "run_date", [date(2026, 10, 27), date(2026, 10, 28), date(2026, 11, 1)]
+)
+def test_partial_loader_day_stays_excluded_on_later_exports(
+    connection, monkeypatch, run_date
 ):
-    rows = [traffic()]
-    daily_rows = [{"PROJECT": "kedro-viz", "DATE": DAY, "COUNT": 10}]
-    for day in [date(2026, 5, 3), date(2026, 5, 4)]:
-        if partial_source in ["main", "both"]:
-            daily_rows.append({"PROJECT": "kedro-viz", "DATE": day, "COUNT": 99})
-        if partial_source in ["extended", "both"]:
-            rows.append(traffic(DATE=day, count=50))
-    totals, extended = tables(connection, rows, daily_rows)
+    # Simulate the export clock without requiring production to read it.
+    clock = Mock(wraps=datetime)
+    clock.now.return_value = datetime.combine(
+        run_date, datetime.min.time(), tzinfo=timezone.utc
+    )
+    monkeypatch.setattr(nodes, "datetime", clock, raising=False)
+    last_complete = date(2026, 10, 26)
+    totals, extended = tables(
+        connection,
+        [traffic(DATE=last_complete)],
+        [{"PROJECT": "kedro-viz", "DATE": last_complete, "COUNT": 10}],
+        latest_date=date(2026, 10, 27),
+    )
     daily, split = export_downloads(totals, extended)
-    assert daily["DATE"].tolist() == [DAY]
-    assert split["DATE"].tolist() == [DAY]
+    assert daily["DATE"].tolist() == split["DATE"].tolist() == [last_complete]
     assert daily["COUNT"].tolist() == split["COUNT"].tolist() == [10]
-    export_clock.now.assert_called_once_with(timezone.utc)
+
+
+@pytest.mark.parametrize("newer_source", ["main", "extended"])
+def test_rejects_different_latest_dates(connection, newer_source):
+    rows = [traffic(), traffic(DATE=date(2026, 5, 2))]
+    daily_rows = [
+        {"PROJECT": "kedro-viz", "DATE": DAY, "COUNT": 10},
+        {"PROJECT": "kedro-viz", "DATE": date(2026, 5, 2), "COUNT": 10},
+    ]
+    if newer_source == "main":
+        daily_rows.append(
+            {"PROJECT": "kedro-viz", "DATE": date(2026, 5, 3), "COUNT": 10}
+        )
+    else:
+        rows.append(traffic(DATE=date(2026, 5, 3)))
+    totals, extended = tables(connection, rows, daily_rows, latest_date=None)
+    with pytest.raises(ValueError, match="latest dates differ"):
+        export_downloads(totals, extended)
+
+
+def test_rejects_snapshot_with_only_the_potentially_incomplete_day(connection):
+    totals, extended = tables(connection, [traffic()], latest_date=None)
+    with pytest.raises(ValueError, match="No download history remains"):
+        export_downloads(totals, extended)
 
 
 @pytest.mark.parametrize("missing_source", ["main", "extended"])

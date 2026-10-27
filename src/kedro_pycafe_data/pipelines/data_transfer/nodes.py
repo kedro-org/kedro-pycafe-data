@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 import ibis.expr.types as ir
 import pandas as pd
 
@@ -52,11 +50,7 @@ def _validate_counts(frame: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
 def export_downloads(
     totals: ir.Table, extended: ir.Table
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Read and reconcile completed UTC days before either CSV is saved."""
-    # Share one cutoff, even if the two reads straddle midnight.
-    today = datetime.now(timezone.utc).date()
-    totals = totals.filter(totals.DATE < today)
-    extended = extended.filter(extended.DATE < today)
+    """Exclude the snapshot's last day and reconcile both exports before saving."""
     daily = _validate_counts(
         totals.select("PROJECT", "DATE", "COUNT").execute(), ["PROJECT", "DATE"]
     )
@@ -66,6 +60,18 @@ def export_downloads(
     segments = _validate_counts(
         segments.drop(columns="INVALID_COUNTS"), ["PROJECT", "DATE", "SEGMENT"]
     )
+    # Use the fetched snapshot, not the export clock: a partial loader day
+    # remains partial until the next refresh, even after midnight has passed.
+    latest_date = daily["DATE"].max()
+    if latest_date != segments["DATE"].max():
+        raise ValueError(
+            "Main and extended latest dates differ. "
+            "Refresh both source tables before publishing the CSVs."
+        )
+    daily = daily.loc[daily["DATE"] < latest_date].reset_index(drop=True)
+    segments = segments.loc[segments["DATE"] < latest_date].reset_index(drop=True)
+    if daily.empty or segments.empty:
+        raise ValueError("No download history remains before the snapshot's last day.")
     split_totals = segments.groupby(["PROJECT", "DATE"], as_index=False)["COUNT"].sum()
     comparison = daily.merge(
         split_totals,
