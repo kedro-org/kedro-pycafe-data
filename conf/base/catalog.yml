@@ -95,13 +95,25 @@ pypi_kedro_downloads:
     backend: snowflake
   credentials: snowflake_credentials
 
-pypi_kedro_downloads_table:
-  type: ibis.FileDataset
-  filepath: data/02_intermediate/pypi_kedro_downloads.csv
-  file_format: csv
+pypi_kedro_downloads_extended:
+  type: ibis.TableDataset
+  table_name: AGGREGATED_DOWNLOADS_EXT
+  database: KEDRO_BI_DB.PYPI
   connection:
     backend: snowflake
   credentials: snowflake_credentials
+
+pypi_kedro_downloads_table:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/pypi_kedro_downloads.csv
+  save_args:
+    index: false
+
+pypi_kedro_downloads_split_table:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/pypi_kedro_downloads_split.csv
+  save_args:
+    index: false
 
 cohort_retention:
   type: ibis.FileDataset

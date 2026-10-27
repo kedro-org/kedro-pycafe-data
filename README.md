@@ -17,13 +17,62 @@ The project tracks:
 
 ### `data_transfer`
 
-Extracts PyPI download data from Snowflake views and saves them locally as CSV:
+Extracts PyPI download data from Snowflake and saves it locally as CSV:
 
 | Node | Snowflake source | Output |
 |---|---|---|
 | `fetch_and_save_snowflake_data` | `KEDRO_BI_DB.PYPI.V_PYPI_KEDRO_DOWNLOADS` | `data/02_intermediate/pypi_kedro_downloads.csv` |
+| `fetch_and_save_snowflake_data` | `KEDRO_BI_DB.PYPI.AGGREGATED_DOWNLOADS_EXT` | `data/02_intermediate/pypi_kedro_downloads_split.csv` |
 | `fetch_and_save_downloads_by_country` | `KEDRO_BI_DB.PYPI.V_DOWNLOADS_BY_COUNTRY` | `data/02_intermediate/downloads_by_country.csv` |
 | `fetch_and_save_plugin_downloads` | `KEDRO_BI_DB.PYPI.V_PYPI_PLUGIN_DOWNLOADS` | `data/02_intermediate/pypi_plugin_downloads.csv` |
+
+### Download counts and traffic segments
+
+The upstream BigQuery loader counts package filenames ending in `.whl`,
+`.tar.gz` or `.zip`. These Snowflake aggregates already exclude metadata
+requests; this exporter does not apply another filename filter.
+
+The existing `pypi_kedro_downloads.csv` keeps its `PROJECT,DATE,COUNT` format.
+The new `pypi_kedro_downloads_split.csv` contains `PROJECT,DATE,SEGMENT,COUNT`,
+with one row per package, date and segment from 1 January 2020 onwards:
+
+- `likely_automated`: US country, pip installer, Linux, saved system release
+  category `azure`, Python `3.12.x` except `3.12.3`, and CI false or missing.
+- `other`: all remaining downloads, including reported CI and other automation.
+
+Both segments stay in the total. This profile suggests automation but does
+not identify its operator or prove that every matching request is automated.
+Counts represent package-file requests, not people or completed installations.
+Zero segments may be absent; charts should treat those as zero.
+
+The export aggregates in Snowflake with read-only queries, then checks the
+small daily results locally. It rejects missing or negative counts, duplicate
+keys, and any difference between the split and main totals for any package
+or date. Both CSVs are saved from the checked results. A failed check stops
+the workflow before it commits or publishes any CSVs.
+
+The export account needs SELECT access to `AGGREGATED_DOWNLOADS_EXT` as well
+as the existing views. No new Snowflake table or view is required.
+
+Before switching the dashboard to the real split CSV, verify these
+January–September 2026 investigation controls against the generated export:
+
+| Package | All other downloads | Likely automated | Total |
+|---|---:|---:|---:|
+| Kedro | 4,732,763 | 1,268,667 | 6,001,430 |
+| Kedro-Viz | 2,019,598 | 3,837,358 | 5,856,956 |
+
+Snowflake stores a derived system release category, while the original
+investigation matched `azure` in the raw release string. The upstream
+classification prioritizes AWS/GCP matches before Azure, so reconcile the
+group controls before treating those definitions as equivalent. Source
+revisions may also require investigating differences; the historical controls
+are not permanent runtime limits.
+
+Refresh the existing country and plugin exports from the corrected source
+as well. They retain their current presentation and do not receive this
+traffic split. The dashboard change is separate: point it at the real split
+CSV and use its actual date coverage instead of the preview's fixed dates.
 
 ### `telemetry_data`
 
