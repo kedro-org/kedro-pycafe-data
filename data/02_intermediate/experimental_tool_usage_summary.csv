@@ -6,7 +6,7 @@
 "experimental",true,"Opik (LLM observability)",4,32,141,2026-06-03,2026-08-12
 "experimental",false,"feast",41,62,188,2026-07-15,2026-07-20
 "experimental",false,"pytorch",36,87,292,2026-08-02,2026-10-11
-"experimental",false,"netcdf",7,195,1073,2026-06-18,2026-10-13
+"experimental",false,"netcdf",7,199,1109,2026-06-18,2026-10-27
 "experimental",false,"mlrun",3,4,16,2026-06-15,2026-06-16
 "experimental",false,"optuna",2,40,316,2026-08-02,2026-10-06
 "experimental",false,"prophet",1,50,100,2026-10-13,2026-10-14
