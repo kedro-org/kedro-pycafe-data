@@ -17,13 +17,46 @@ The project tracks:
 
 ### `data_transfer`
 
-Extracts PyPI download data from Snowflake views and saves them locally as CSV:
+Extracts PyPI download data from Snowflake and saves it locally as CSV:
 
 | Node | Snowflake source | Output |
 |---|---|---|
 | `fetch_and_save_snowflake_data` | `KEDRO_BI_DB.PYPI.V_PYPI_KEDRO_DOWNLOADS` | `data/02_intermediate/pypi_kedro_downloads.csv` |
+| `fetch_and_save_snowflake_data` | `KEDRO_BI_DB.PYPI.AGGREGATED_DOWNLOADS_EXT` | `data/02_intermediate/pypi_kedro_downloads_split.csv` |
 | `fetch_and_save_downloads_by_country` | `KEDRO_BI_DB.PYPI.V_DOWNLOADS_BY_COUNTRY` | `data/02_intermediate/downloads_by_country.csv` |
 | `fetch_and_save_plugin_downloads` | `KEDRO_BI_DB.PYPI.V_PYPI_PLUGIN_DOWNLOADS` | `data/02_intermediate/pypi_plugin_downloads.csv` |
+
+### Download counts and traffic segments
+
+The upstream BigQuery loader counts package filenames ending in `.whl`,
+`.tar.gz` or `.zip`. These Snowflake aggregates already exclude metadata
+requests; this exporter does not apply another filename filter.
+
+The existing `pypi_kedro_downloads.csv` keeps its `PROJECT,DATE,COUNT` format.
+The new `pypi_kedro_downloads_split.csv` contains `PROJECT,DATE,SEGMENT,COUNT`,
+with one row per package, date and segment from 1 January 2020 onwards:
+
+- `likely_automated`: US country, pip installer, Linux, saved system release
+  category `azure`, Python `3.12.x` except `3.12.3`, and CI false or missing.
+- `other`: all remaining downloads, including reported CI and other automation.
+
+Both segments stay in the total. This profile suggests automation but does
+not identify its operator or prove that every matching request is automated.
+Counts represent package-file requests, not people or completed installations.
+Zero segments may be absent; charts should treat those as zero.
+
+Both source tables must have the same latest date. Both download CSVs omit
+that potentially incomplete loader day, even when the export runs days later.
+Earlier dates must match; missing dates, differing totals, invalid counts or
+duplicate keys stop publication. Daily runs remain blocked until the source
+mismatch is resolved. Checks are not restricted to dates shared by both tables.
+
+The export account needs SELECT access to `AGGREGATED_DOWNLOADS_EXT` as well
+as the existing views. Queries are read-only; no new table or view is needed.
+
+Before connecting the chart, verify the group totals against the investigation
+results. Snowflake's saved `azure` category may differ from the original raw
+release-string match. Matching overall totals alone does not verify the split.
 
 ### `telemetry_data`
 

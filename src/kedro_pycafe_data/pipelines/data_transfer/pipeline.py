@@ -1,15 +1,18 @@
 from kedro.pipeline import Node, Pipeline
 
-from .nodes import identity
+from .nodes import export_downloads, identity
 
 
 def create_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
         [
             Node(
-                identity,
-                inputs="pypi_kedro_downloads",
-                outputs="pypi_kedro_downloads_table",
+                export_downloads,
+                inputs=["pypi_kedro_downloads", "pypi_kedro_downloads_extended"],
+                outputs=[
+                    "pypi_kedro_downloads_table",
+                    "pypi_kedro_downloads_split_table",
+                ],
                 name="fetch_and_save_snowflake_data",
             ),
             Node(

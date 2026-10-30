@@ -48,7 +48,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Force-add generated CSVs even if ignored
-          git add -f data/02_intermediate/pypi_kedro_downloads.csv || true
+          git add -f data/02_intermediate/pypi_kedro_downloads.csv
+          git add -f data/02_intermediate/pypi_kedro_downloads_split.csv
           git add -f data/02_intermediate/downloads_by_country.csv || true
           git add -f data/02_intermediate/pypi_plugin_downloads.csv || true
 
