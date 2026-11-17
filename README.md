@@ -36,8 +36,9 @@ The existing `pypi_kedro_downloads.csv` keeps its `PROJECT,DATE,COUNT` format.
 The new `pypi_kedro_downloads_split.csv` contains `PROJECT,DATE,SEGMENT,COUNT`,
 with one row per package, date and segment from 1 January 2020 onwards:
 
-- `likely_automated`: US country, pip installer, Linux, saved system release
-  category `azure`, Python `3.12.x` except `3.12.3`, and CI false or missing.
+- `likely_automated`: US country, pip or uv installer, Linux, saved system
+  release category `azure`, Python `3.12.x` except `3.12.3`, and CI false or
+  missing. Most of this traffic switched from pip to uv on 27 October 2026.
 - `other`: all remaining downloads, including reported CI and other automation.
 
 Both segments stay in the total. This profile suggests automation but does

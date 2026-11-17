@@ -14,7 +14,8 @@ def download_segments(downloads: ir.Table) -> ir.Table:
     )
     in_group = (
         (downloads.country_code == "US")
-        & (downloads.installer_name == "pip")
+        # Most of this traffic switched from pip to uv on 27 October 2026.
+        & downloads.installer_name.isin(["pip", "uv"])
         & (downloads.system_name == "Linux")
         & (downloads.system_release_cat == "azure")
         & downloads.python.like("3.12.%")

@@ -76,7 +76,10 @@ def tables(connection, rows, daily=None, latest_date=date(2026, 5, 3)):
         ({"python": None}, "other"),
         ({"country_code": "NL"}, "other"),
         ({"country_code": None}, "other"),
-        ({"installer_name": "uv"}, "other"),
+        ({"installer_name": "uv"}, "likely_automated"),
+        ({"installer_name": "uv", "ci": True}, "other"),
+        ({"installer_name": "poetry"}, "other"),
+        ({"installer_name": None}, "other"),
         ({"system_name": "Windows"}, "other"),
         ({"system_release_cat": "aws"}, "other"),
         ({"system_release_cat": None}, "other"),
@@ -111,7 +114,7 @@ def test_preserves_totals_and_existing_history_window(connection):
     daily, split = export_downloads(totals, extended)
     assert list(daily.columns) == ["PROJECT", "DATE", "COUNT"]
     assert list(split.columns) == ["PROJECT", "DATE", "SEGMENT", "COUNT"]
-    assert split["COUNT"].tolist() == [7, 10, 5]
+    assert split["COUNT"].tolist() == [7, 12, 3]
     assert not split.duplicated(["PROJECT", "DATE", "SEGMENT"]).any()
     assert daily["COUNT"].sum() == split["COUNT"].sum() == 22
 
